@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:inventory/core/config/app_config.dart';
+import 'package:retailpos/core/config/app_config.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -364,3 +364,4 @@ class _SystemUpdateScreenState extends State<SystemUpdateScreen> {
     );
   }
 }
+

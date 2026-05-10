@@ -475,9 +475,9 @@ async function verifyRecoveryOtp(req, res) {
 
 
 async function triggerAutoReinstall(req, res) {
-    const localInstallerPath = path.join(rootDir, 'Inventory_Installer.exe');
-    const onlineUrl = "https://wipl.net.in/hms/utility/Inventory_Installer.exe";
-    const downloadDest = path.join(rootDir, 'Inventory_Installer_Downloaded.exe');
+    const localInstallerPath = path.join(rootDir, 'Retailpos_Installer.exe');
+    const onlineUrl = "https://github.com/studentsdav/Retailpos/releases/download/1.0.0.0/Retailpos_Installer.exe";
+    const downloadDest = path.join(rootDir, 'Retailpos_Installer_Downloaded.exe');
 
     // const launchInstaller = (exePath) => {
     //     // Added Inno Setup silent flags to hide the UI and suppress prompts
@@ -507,7 +507,7 @@ async function triggerAutoReinstall(req, res) {
         if (response.statusCode !== 200) {
             return res.status(500).json({
                 success: false,
-                message: "Not possible to recover automatically. Please contact your provider or manually run Inventory_Installer.exe."
+                message: "Not possible to recover automatically. Please contact your provider or manually run Retailpos_Installer.exe."
             });
         }
 
@@ -535,7 +535,7 @@ async function triggerAutoReinstall(req, res) {
 
         return res.status(500).json({
             success: false,
-            message: "Not possible to recover automatically. Please contact your provider or manually run Inventory_Installer.exe."
+            message: "Not possible to recover automatically. Please contact your provider or manually run Retailpos_Installer.exe."
         });
     });
 }
@@ -548,3 +548,5 @@ module.exports = {
     triggerAutoReinstall,
     verifyAndRecoverConfig
 };
+
+

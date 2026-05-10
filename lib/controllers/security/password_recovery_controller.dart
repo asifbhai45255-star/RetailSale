@@ -1,4 +1,4 @@
-import 'package:inventory/core/api/endpoints.dart';
+import 'package:retailpos/core/api/endpoints.dart';
 
 import '../../core/api/api_client.dart';
 
@@ -65,3 +65,4 @@ class PasswordRecoveryController {
     }
   }
 }
+

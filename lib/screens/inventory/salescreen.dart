@@ -6,8 +6,8 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:excel/excel.dart' as exc;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:inventory/screens/inventory/receiving.dart';
-import 'package:inventory/screens/modify/sales_reprint_modify_screen.dart';
+import 'package:retailpos/screens/inventory/receiving.dart';
+import 'package:retailpos/screens/modify/sales_reprint_modify_screen.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -9768,3 +9768,4 @@ class _VoucherDefinition {
     );
   }
 }
+

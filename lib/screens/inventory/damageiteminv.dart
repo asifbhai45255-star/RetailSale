@@ -2,7 +2,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:inventory/models/inventory/damage_item_model.dart';
+import 'package:retailpos/models/inventory/damage_item_model.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -745,3 +745,4 @@ class _DamageItemScreenState extends State<DamageItemScreen> {
     );
   }
 }
+

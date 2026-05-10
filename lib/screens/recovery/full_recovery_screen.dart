@@ -162,13 +162,13 @@ class _InstallerDownloadDialogState extends State<InstallerDownloadDialog> {
 
     try {
       Uri url = Uri.parse(
-          'https://github.com/studentsdav/Inventory_public/releases/download/1.0.0.0/Inventory_Installer.exe');
+          'https://github.com/studentsdav/Retailpos/releases/download/1.0.0.0/Retailpos_Installer.exe');
       if (message == "Partial Recovery") {
         url = Uri.parse(
-            'https://github.com/studentsdav/Inventory_public/releases/download/1.0.0.0/Inventory_Installer.exe');
+            'https://github.com/studentsdav/Retailpos/releases/download/1.0.0.0/Retailpos_Installer.exe');
       } else {
         url = Uri.parse(
-            'https://github.com/studentsdav/Inventory_public/releases/download/1.0.0.0/backend_Installer.exe');
+            'https://github.com/studentsdav/Retailpos/releases/download/1.0.0.0/backend_Installer.exe');
       }
 
       final httpClient = HttpClient();
@@ -193,7 +193,7 @@ class _InstallerDownloadDialogState extends State<InstallerDownloadDialog> {
       );
 
       final tempDir = Directory.systemTemp;
-      final file = File('${tempDir.path}\\init_Installer_Downloaded.exe');
+      final file = File('${tempDir.path}\\Retailpos_Installer_Downloaded.exe');
       await file.writeAsBytes(bytes);
 
       setState(() {
@@ -278,3 +278,4 @@ class _InstallerDownloadDialogState extends State<InstallerDownloadDialog> {
     );
   }
 }
+

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inventory/screens/splash_screen.dart';
+import 'package:retailpos/screens/splash_screen.dart';
 
 import '../../core/config/app_config.dart';
 import '../../main.dart'; // Adjust import to where your main() or restart logic is
@@ -146,3 +146,4 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
     );
   }
 }
+

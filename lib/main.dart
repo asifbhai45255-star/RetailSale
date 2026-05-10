@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inventory/controllers/security/recovery_controller.dart';
+import 'package:retailpos/controllers/security/recovery_controller.dart';
 import 'package:provider/provider.dart';
 
 import 'controllers/security/user_controller.dart';
@@ -89,3 +89,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+

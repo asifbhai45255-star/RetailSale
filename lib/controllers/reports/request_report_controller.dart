@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:inventory/core/api/endpoints.dart';
+import 'package:retailpos/core/api/endpoints.dart';
 
 import '../../core/api/api_client.dart';
 import '../../models/reports/request_report_model.dart';
@@ -86,3 +86,4 @@ class RequestReportController extends ChangeNotifier {
     notifyListeners();
   }
 }
+

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:inventory/models/reports/purchase_report_model.dart';
+import 'package:retailpos/models/reports/purchase_report_model.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/endpoints.dart';
@@ -95,3 +95,4 @@ class PurchaseReportController extends ChangeNotifier {
     notifyListeners();
   }
 }
+

@@ -54,4 +54,15 @@ class AppConfig {
           "Failed to save configuration to disk. Please check folder permissions.");
     }
   }
+
+  static bool get isLocalServer {
+    try {
+      final uri = Uri.parse(baseUrl);
+      final host = uri.host.toLowerCase();
+      return host == 'localhost' || host == '127.0.0.1';
+    } catch (_) {
+      final lower = baseUrl.toLowerCase();
+      return lower.contains('localhost') || lower.contains('127.0.0.1');
+    }
+  }
 }

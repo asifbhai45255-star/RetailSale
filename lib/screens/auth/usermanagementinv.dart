@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inventory/controllers/security/user_controller.dart';
+import 'package:retailpos/controllers/security/user_controller.dart';
 
 import '../../controllers/public/outlet_controller.dart' show OutletController;
 import '../../models/security/app_user_model.dart';
@@ -1042,3 +1042,4 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         ),
       );
 }
+

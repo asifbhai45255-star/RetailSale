@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:inventory/core/auth/auth_service.dart';
-import 'package:inventory/core/config/app_brand.dart';
-import 'package:inventory/core/config/app_config.dart';
-import 'package:inventory/core/navigation/home_route_helper.dart';
-import 'package:inventory/screens/settings/outlet_setup_screen.dart';
+import 'package:retailpos/core/auth/auth_service.dart';
+import 'package:retailpos/core/config/app_brand.dart';
+import 'package:retailpos/core/config/app_config.dart';
+import 'package:retailpos/core/navigation/home_route_helper.dart';
+import 'package:retailpos/screens/settings/outlet_setup_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../controllers/security/password_recovery_controller.dart';
@@ -279,7 +279,7 @@ class _InventoryLoginScreenState extends State<InventoryLoginScreen>
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Retail, inventory, accounting, and reporting in one secure flow.',
+                  'Retailpos, billing, accounting, and reporting in one secure flow.',
                   style: TextStyle(
                     color: Colors.white70,
                     height: 1.4,
@@ -355,7 +355,7 @@ class _InventoryLoginScreenState extends State<InventoryLoginScreen>
                   const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           const Text(
-            'Retail, inventory, accounting, and reporting in one secure flow.',
+            'Retailpos, billing, accounting, and reporting in one secure flow.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF64748B), height: 1.35),
           ),
@@ -974,3 +974,5 @@ class _HeroPill extends StatelessWidget {
     );
   }
 }
+
+

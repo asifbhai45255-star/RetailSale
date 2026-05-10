@@ -2,7 +2,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:inventory/utils/date_picker_helper.dart';
+import 'package:retailpos/utils/date_picker_helper.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -1413,3 +1413,4 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
     );
   }
 }
+

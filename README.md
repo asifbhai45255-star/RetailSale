@@ -9,6 +9,7 @@ Flutter client + Node.js backend for inventory, sales, purchase orders, receivin
 - [Complete Help File](./Docs/Help-File.md)
 - [Frontend Guide](./Docs/Frontend-Guide.md)
 - [Backend Guide](./Docs/Backend-Guide.md)
+- [Own Server Online Deployment Guide](./Docs/Own-Server-Online-Deployment-Guide.md)
 - [Endpoint Reference](./Docs/Endpoint-Reference.md)
 - [Init Setup Guide](./Docs/Init-Setup.md)
 

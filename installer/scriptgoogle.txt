@@ -255,7 +255,68 @@ else if (action === 'check_update') {
 // ==========================================
     // 6. DOWNLOAD LATEST BACKUP (Auto-find)
     // ==========================================
+
 else if (action === 'download_latest_backup') {
+  try {
+    if (!req.folderId) {
+      return createResponse({
+        status: 'error',
+        message: 'Missing folderId parameter in the request payload.'
+      });
+    }
+
+    var folder = DriveApp.getFolderById(req.folderId);
+    var files = folder.getFiles();
+
+    var latestFile = null;
+    var latestTime = 0;
+
+    while (files.hasNext()) {
+      var f = files.next();
+      var name = String(f.getName() || '').toLowerCase();
+
+      // Only allow encrypted backup files
+      // Examples accepted: backup_2026-05-09_15-00-01.enc
+      var isBackupEnc = name.indexOf('backup_') === 0 && name.slice(-4) === '.enc';
+      if (!isBackupEnc) continue;
+
+      var t = f.getDateCreated().getTime();
+      if (t > latestTime) {
+        latestTime = t;
+        latestFile = f;
+      }
+    }
+
+    if (!latestFile) {
+      return createResponse({
+        status: 'error',
+        message: 'No encrypted backup files (backup_*.enc) found in folder.'
+      });
+    }
+
+    var blob = latestFile.getBlob();
+    var base64 = Utilities.base64Encode(blob.getBytes());
+
+    return createResponse({
+      status: 'success',
+      base64: base64,
+      filename: latestFile.getName(),
+      message: 'Latest encrypted backup selected: ' + latestFile.getName()
+    });
+
+  } catch (error) {
+    return createResponse({
+      status: 'error',
+      message: 'Cloud extraction failed: ' + error.message
+    });
+  }
+}
+
+
+
+
+
+/*else if (action === 'download_latest_backup') {
       try {
         if (!req.folderId) {
           return createResponse({ 
@@ -270,12 +331,12 @@ else if (action === 'download_latest_backup') {
         var latestFile = null;
         var latestTime = 0;
 
-        // Iterate through all files to locate the most recently created payload
+        // Iterate through all files to locate the most recent encrypted backup only
         while (files.hasNext()) {
           var currentFile = files.next();
-          
-          // Optional: If you keep config files in the same folder, you can filter by name
-          // if (currentFile.getName().indexOf('backup') === -1) continue;
+          var currentName = String(currentFile.getName() || '');
+          var isBackupFile = currentName.indexOf('backup_') === 0 && currentName.toLowerCase().slice(-4) === '.enc';
+          if (!isBackupFile) continue;
 
           var fileTime = currentFile.getDateCreated().getTime();
           if (fileTime > latestTime) {
@@ -287,7 +348,7 @@ else if (action === 'download_latest_backup') {
         if (!latestFile) {
           return createResponse({ 
             status: 'error', 
-            message: 'No backup files found in the specified cloud directory.' 
+            message: 'No encrypted backup files (backup_*.enc) found in the specified cloud directory.' 
           });
         }
 
@@ -309,7 +370,7 @@ else if (action === 'download_latest_backup') {
           message: 'Cloud extraction failed: ' + error.message 
         });
       }
-    }
+    } */
 
     // ==========================================
     // 8. UPLOAD CONFIG (Overwrites old version)

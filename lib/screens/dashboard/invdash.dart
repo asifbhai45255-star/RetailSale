@@ -1,11 +1,11 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:inventory/models/security/app_user_model.dart';
-import 'package:inventory/screens/dashboard/system_update_screen.dart';
-import 'package:inventory/screens/reports/return_report_screen.dart';
-import 'package:inventory/screens/settings/settinginv.dart';
+import 'package:retailpos/models/security/app_user_model.dart';
+import 'package:retailpos/screens/dashboard/system_update_screen.dart';
+import 'package:retailpos/screens/reports/return_report_screen.dart';
+import 'package:retailpos/screens/settings/settinginv.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -17,6 +17,7 @@ import '../../controllers/settings/notification_services.dart';
 import '../../controllers/settings/property_info_controller.dart';
 import '../../core/api/api_client.dart';
 import '../../core/auth/token_storage.dart';
+import '../../core/config/app_config.dart';
 import '../../core/settings/local_preferences.dart';
 import '../../models/auth/permission_service.dart';
 import '../../models/common/property_info_model.dart';
@@ -78,7 +79,7 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
       DateTime.now().subtract(const Duration(hours: 3, minutes: 20));
 
   UserProfile? user;
-  // ðŸ”¥ SUPPLIER FINANCE DATA
+  // 🔥 SUPPLIER FINANCE DATA
   // KPI
   int todayIn = 24;
   int todayOut = 31;
@@ -129,10 +130,10 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
   bool get _showRetailSalesReportSection =>
       _isRetailBusiness || PermissionService.can('RETAIL_SALES_REPORT');
   String get _dashboardTitle {
-    if (_isWarehouseBusiness) return 'Warehouse Inventory Dashboard';
-    if (_isRetailBusiness) return 'Retail Inventory Dashboard';
-    if (_isHospitalityBusiness) return 'Department Inventory Dashboard';
-    return 'Inventory Dashboard';
+    if (_isWarehouseBusiness) return 'Warehouse Retailpos Dashboard';
+    if (_isRetailBusiness) return 'Retailpos Dashboard';
+    if (_isHospitalityBusiness) return 'Department Retailpos Dashboard';
+    return 'Retailpos Dashboard';
   }
 
   @override
@@ -193,6 +194,8 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
   }
 
   Future<void> _verifyDataProtection() async {
+    if (!AppConfig.isLocalServer) return;
+
     final alertStatus = await BackupService.checkStatus();
 
     if (!mounted) return;
@@ -611,7 +614,7 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
       appBar: AppBar(
         title: Text(_dashboardTitle),
         actions: [
-          if (_userRole == 'ADMIN')
+          if (_userRole == 'ADMIN' && AppConfig.isLocalServer)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: _isSyncing
@@ -2348,3 +2351,8 @@ double _safeDouble(dynamic value) {
   if (value is num) return value.toDouble();
   return double.tryParse(value?.toString() ?? '') ?? 0;
 }
+
+
+
+
+

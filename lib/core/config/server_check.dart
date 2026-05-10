@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:inventory/core/config/app_config.dart' show AppConfig;
+import 'package:retailpos/core/config/app_config.dart' show AppConfig;
 
 class HealthResponse {
   final bool isRunning;
@@ -45,3 +45,4 @@ Future<HealthResponse> checkServer() async {
     );
   }
 }
+

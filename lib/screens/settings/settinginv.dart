@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inventory/screens/recovery/backup_service.dart';
+import 'package:retailpos/screens/recovery/backup_service.dart';
 import 'package:provider/provider.dart';
 import 'package:printing/printing.dart';
 
@@ -8,6 +8,7 @@ import '../../controllers/settings/system_settings_controller.dart';
 import '../../controllers/settings/theme_controller.dart';
 import '../../controllers/settings/ui_preferences_controller.dart';
 import '../../core/api/api_client.dart';
+import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/settings/local_preferences.dart';
 import '../../models/auth/permission_service.dart';
@@ -253,42 +254,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _section('Data & Security', [
-            _switchTile(
-              'Enable Cloud Backup',
-              'Automatically sync your store data to Cloud',
-              s.isCloudEnabled,
-              (bool newValue) async {
-                setState(() => s.isCloudEnabled = newValue);
+          if (AppConfig.isLocalServer)
+            _section('Data & Security', [
+              _switchTile(
+                'Enable Cloud Backup',
+                'Automatically sync your store data to Cloud',
+                s.isCloudEnabled,
+                (bool newValue) async {
+                  setState(() => s.isCloudEnabled = newValue);
 
-                final success = await BackupService.toggleCloudSync(newValue);
-                ctrl.save(s);
+                  final success = await BackupService.toggleCloudSync(newValue);
+                  ctrl.save(s);
 
-                if (mounted) {
-                  if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(newValue
-                            ? 'Cloud backup enabled successfully!'
-                            : 'Cloud backup paused.'),
-                        backgroundColor:
-                            newValue ? Colors.green : Colors.orange,
-                      ),
-                    );
-                  } else {
-                    setState(() => s.isCloudEnabled = !newValue);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Failed to update setting. Check internet.'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                  if (mounted) {
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(newValue
+                              ? 'Cloud backup enabled successfully!'
+                              : 'Cloud backup paused.'),
+                          backgroundColor:
+                              newValue ? Colors.green : Colors.orange,
+                        ),
+                      );
+                    } else {
+                      setState(() => s.isCloudEnabled = !newValue);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('Failed to update setting. Check internet.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
-                }
-              },
-            ),
-          ]),
+                },
+              ),
+            ]),
           _section('Inventory Settings', [
             _switchTile(
               'Enable Auto Reorder Alert',
@@ -898,3 +900,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+

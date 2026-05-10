@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inventory/screens/recovery/full_recovery_screen.dart';
+import 'package:retailpos/screens/recovery/full_recovery_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../../controllers/security/recovery_controller.dart';
@@ -103,3 +103,4 @@ class _AutoReinstallScreenState extends State<AutoReinstallScreen> {
     );
   }
 }
+

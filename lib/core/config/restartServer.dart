@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:inventory/core/config/app_config.dart'; // Make sure to import where your URL is stored
+import 'package:retailpos/core/config/app_config.dart'; // Make sure to import where your URL is stored
 
 class ServerBootstrapper {
   static Future<bool> ensureServerIsRunning() async {
@@ -65,3 +65,4 @@ class ServerBootstrapper {
     }
   }
 }
+

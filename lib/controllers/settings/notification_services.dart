@@ -1,5 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:inventory/core/api/api_client.dart';
+import 'package:retailpos/core/api/api_client.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -44,3 +44,4 @@ class NotificationService {
     );
   }
 }
+

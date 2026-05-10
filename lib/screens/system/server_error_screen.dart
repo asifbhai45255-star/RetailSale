@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:inventory/main.dart';
-import 'package:inventory/screens/splash_screen.dart';
+import 'package:retailpos/main.dart';
+import 'package:retailpos/screens/splash_screen.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/config/restartServer.dart';
@@ -99,3 +99,4 @@ class _ServerErrorScreenState extends State<ServerErrorScreen> {
     );
   }
 }
+

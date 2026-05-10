@@ -2,8 +2,8 @@
 AppName=INVINS
 AppVersion=1.1.33
 AppPublisher=INVINS
-DefaultDirName={sd}\Inventory
-DefaultGroupName=Inventory
+DefaultDirName={sd}\Retailpos
+DefaultGroupName=Retailpos
 OutputBaseFilename=backend_Installer
 Compression=lzma
 SolidCompression=yes
@@ -12,11 +12,11 @@ PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64
 
 [Files]
-Source: "D:\inventory\installer\Output\Inventory_Installer.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\inventory\backend\encrypt.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\inventory\installer\app_icon.ico"; DestDir: "{app}\resources"; Flags: ignoreversion
-Source: "D:\inventory\installer\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
-Source: "D:\inventory\installer\postgresql-18.3-2-windows-x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "D:\inventorynew\RetailSale new\RetailSale\installer\Output\Retailpos_Installer.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\inventorynew\RetailSale new\RetailSale\backend\encrypt.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\inventorynew\RetailSale new\RetailSale\installer\app_icon.ico"; DestDir: "{app}\resources"; Flags: ignoreversion
+Source: "D:\inventorynew\RetailSale new\RetailSale\installer\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "D:\inventorynew\RetailSale new\RetailSale\installer\postgresql-18.3-2-windows-x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Run]
 ; Install VC++ silently
@@ -25,7 +25,7 @@ Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; S
 [Registry]
 ; ✅ 1. AUTOMATICALLY WIPE THE REGISTRY ON UNINSTALL
 ; This tells the uninstaller to delete the DbToken and the entire Inventory key
-Root: HKLM; Subkey: "SOFTWARE\INVINS\Inventory"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\INVINS\Retailpos"; Flags: uninsdeletekey
 Root: HKLM; Subkey: "SOFTWARE\INVINS"; Flags: uninsdeletekeyifempty
 
 [UninstallRun]
@@ -217,14 +217,14 @@ begin
     TokenFile := ExpandConstant('{commonappdata}\INVINS\security.dat');
 
     { Step 1: Try to read the SCRAMBLED password from the Registry }
-    if not RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\INVINS\Inventory', 'DbToken', MasterPassword) then
+    if not RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\INVINS\Retailpos', 'DbToken', MasterPassword) then
     begin
       { Step 2: The Registry key is missing! Let's check the hidden backup file. }
       if LoadStringFromFile(TokenFile, FileString) then
       begin
         { Backup found! Restore the password and quietly fix the Registry }
         MasterPassword := String(FileString);
-        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\INVINS\Inventory', 'DbToken', MasterPassword);
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\INVINS\Retailpos', 'DbToken', MasterPassword);
         MasterPassword := UnscramblePassword(MasterPassword);
       end
       else
@@ -236,7 +236,7 @@ begin
         MasterPassword := ScramblePassword(MasterPassword);
         
         { Save it to the Registry }
-        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\INVINS\Inventory', 'DbToken', MasterPassword);
+        RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\INVINS\Retailpos', 'DbToken', MasterPassword);
         
         { Save it to the hidden Backup File }
         ForceDirectories(ExpandConstant('{commonappdata}\INVINS'));
@@ -292,7 +292,7 @@ begin
     WizardForm.StatusLabel.Caption := 'Installing User Interface... Almost done!';
     WizardForm.Refresh;
     Exec(
-      ExpandConstant('{app}\Inventory_Installer.exe'),
+      ExpandConstant('{app}\Retailpos_Installer.exe'),
       '/install /quiet /norestart',
       '',
       SW_HIDE,
@@ -301,3 +301,4 @@ begin
     );
   end;
 end;
+

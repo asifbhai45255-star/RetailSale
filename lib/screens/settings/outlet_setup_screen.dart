@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:inventory/screens/auth/inventorylogin.dart';
+import 'package:retailpos/screens/auth/inventorylogin.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -50,6 +50,7 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
 
   final outletCtrl = OutletController();
   final recoveryCtrl = RecoveryController();
+  bool get _isLocalSetupServer => AppConfig.isLocalServer;
 
   @override
   void initState() {
@@ -164,16 +165,22 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
       // 1. Verify PIN via Backend
       final verifyRes = await recoveryCtrl.verifyPin(code, pin);
 
-      // 2. Execute full system recovery (Downloads DB and Configs)
-      await recoveryCtrl.executeRecovery(
-          verifyRes['folderId'], verifyRes['clientData']);
+      // 2. For localhost host machine, do full system recovery.
+      if (_isLocalSetupServer) {
+        await recoveryCtrl.executeRecovery(
+            verifyRes['folderId'], verifyRes['clientData']);
+      }
 
       // 3. Save locally
       await _addOutletToConfig(code);
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
-      _showRecoveryCompleteDialog(); // Show Success Dialog
+      if (_isLocalSetupServer) {
+        _showRecoveryCompleteDialog();
+      } else {
+        _showLinkCompleteDialog();
+      }
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog on error
@@ -224,16 +231,22 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
       final verifyRes =
           await recoveryCtrl.verifyOtp(outletCode: code, otp: otp);
 
-      // 2. Execute full system recovery
-      await recoveryCtrl.executeRecovery(
-          verifyRes['folderId'], verifyRes['clientData']);
+      // 2. For localhost host machine, do full system recovery.
+      if (_isLocalSetupServer) {
+        await recoveryCtrl.executeRecovery(
+            verifyRes['folderId'], verifyRes['clientData']);
+      }
 
       // 3. Save locally
       await _addOutletToConfig(code);
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
-      _showRecoveryCompleteDialog(); // Show Success Dialog
+      if (_isLocalSetupServer) {
+        _showRecoveryCompleteDialog();
+      } else {
+        _showLinkCompleteDialog();
+      }
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog on error
@@ -597,7 +610,9 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
   Widget _buildExistingClientForm() {
     if (_step == FlowStep.otpVerification) {
       return _buildOtpVerificationSection(
-        "Verify OTP to Link Device",
+        _isLocalSetupServer
+            ? "Verify OTP to Recover System"
+            : "Verify OTP to Link Device",
         _verifyOtpAndLink,
         () => _requestOtpForExisting(isResend: true),
       );
@@ -632,7 +647,11 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildActionButton("Verify & Recover System", _verifyExistingPin),
+          _buildActionButton(
+              _isLocalSetupServer
+                  ? "Verify & Recover System"
+                  : "Verify & Link Device",
+              _verifyExistingPin),
         ] else ...[
           Container(
             padding: const EdgeInsets.all(12),
@@ -688,7 +707,8 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
           icon: Icons.search,
         ),
         const SizedBox(height: 28),
-        _buildActionButton("Find Business ID & Send OTP", _findOutletAndSendOtp),
+        _buildActionButton(
+            "Find Business ID & Send OTP", _findOutletAndSendOtp),
       ],
     );
   }
@@ -953,23 +973,28 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const AlertDialog(
+      builder: (context) => AlertDialog(
         content: Padding(
-          padding: EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 24),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
               Text(
-                "Recovering Business Data...",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                _isLocalSetupServer
+                    ? "Recovering Business Data..."
+                    : "Verifying & Linking Device...",
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
-                "Downloading database and configurations.\nPlease do not close the app.",
+                _isLocalSetupServer
+                    ? "Downloading database and configurations.\nPlease do not close the app."
+                    : "Validating your identity and linking this device.\nPlease do not close the app.",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
             ],
           ),
@@ -993,6 +1018,37 @@ class _OutletSetupScreenState extends State<OutletSetupScreen> {
         ),
         content: const Text(
             "Your device has been successfully linked and the business database has been fully restored from the cloud."),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const InventoryLoginScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text("Proceed to Login"),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showLinkCompleteDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 32),
+            SizedBox(width: 12),
+            Text("Link Complete"),
+          ],
+        ),
+        content: const Text(
+            "Your device has been successfully verified and linked to this business."),
         actions: [
           FilledButton(
             onPressed: () {

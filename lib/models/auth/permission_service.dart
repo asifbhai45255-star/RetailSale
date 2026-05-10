@@ -1,4 +1,4 @@
-import 'package:inventory/models/auth/permission_model.dart';
+import 'package:retailpos/models/auth/permission_model.dart';
 
 class PermissionService {
   static UserPermission? user;
@@ -21,3 +21,4 @@ class PermissionService {
     return user!.permissions.contains(permission);
   }
 }
+

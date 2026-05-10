@@ -119,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    AppConfig.outlets.isNotEmpty ? "INVENTORY" : "SETUP",
+                    AppConfig.outlets.isNotEmpty ? "RETAILPOS" : "SETUP",
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2.0,
@@ -155,3 +155,4 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
+
