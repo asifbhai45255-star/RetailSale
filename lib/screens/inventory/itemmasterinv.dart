@@ -567,12 +567,12 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
         DoubleCellValue(item.retailSalePrice),
         TextCellValue(item.taxType),
         DoubleCellValue(item.taxPercent),
-        TextCellValue(item.discountApplicable ? 'YES' : 'NO'),
-        TextCellValue(item.schemeApplicable ? 'YES' : 'NO'),
+        TextCellValue(item.discountApplicable ? 'True' : 'False'),
+        TextCellValue(item.schemeApplicable ? 'True' : 'False'),
         DoubleCellValue(item.openingBalance),
         IntCellValue(item.minLevel),
         IntCellValue(item.maxLevel),
-        TextCellValue(item.stockable ? 'YES' : 'NO'),
+        TextCellValue(item.stockable ? 'True' : 'False'),
       ]);
     }
 
@@ -628,12 +628,13 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
           "retail_sale_price": double.parse(row[9]?.value.toString() ?? "0"),
           "tax_type": row[10]?.value.toString() ?? 'GST',
           "tax_percent": double.parse(row[11]?.value.toString() ?? "0"),
-          "discount_applicable": row[12]?.value.toString() == 'YES',
-          "scheme_applicable": row[13]?.value.toString() == 'YES',
+          "discount_applicable":
+              bool.parse(row[12]?.value.toString() ?? 'true'),
+          "scheme_applicable": bool.parse(row[13]?.value.toString() ?? 'true'),
           "opening_balance": double.parse(row[14]?.value.toString() ?? "0"),
           "min_level": int.parse(row[15]?.value.toString() ?? "0"),
           "max_level": int.parse(row[16]?.value.toString() ?? "0"),
-          "stockable": bool.parse(row[17]?.value.toString() ?? "true"),
+          "stockable": bool.parse(row[17]?.value.toString() ?? "True"),
         });
       }
     }
