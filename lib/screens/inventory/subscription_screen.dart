@@ -2394,7 +2394,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                   Align(
                                     alignment: Alignment.centerLeft,
                                     child: Text(
-                                      'Taxable: Rs. ${_taxableSubscriptionAmount.toStringAsFixed(2)} | Tax (${_taxPercentValue.toStringAsFixed(2)}%): Rs. ${_taxAmountValue.toStringAsFixed(2)} | Total: Rs. ${_grandTotalSubscriptionAmount.toStringAsFixed(2)} | Effective end: ${DateFormat('dd-MMM-yyyy').format(_effectiveEndDate)}',
+                                      'Taxable: Rs. ${_taxableSubscriptionAmount.toStringAsFixed(2)} | Tax (${_taxPercentValue.toStringAsFixed(2)}%): Rs. ${_taxAmountValue.toStringAsFixed(2)} | Total: Rs. ${_grandTotalSubscriptionAmount.toStringAsFixed(2)} | Days: ${(_endDate.difference(_startDate).inDays + 1).clamp(1, 1000000)} | Effective end: ${DateFormat('dd-MMM-yyyy').format(_effectiveEndDate)}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                         color: Color(0xFF334155),

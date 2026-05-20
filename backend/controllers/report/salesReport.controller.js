@@ -131,7 +131,12 @@ exports.getSalesReport = async (req, res) => {
         const outlet_id = req.user.outlet_id;
         const { from_date, to_date, payment_mode, search } = req.query;
 
-        const where = { outlet_id };
+        const where = {
+            outlet_id,
+            status: 'COMPLETED',
+            is_deleted: false,
+            is_latest: true
+        };
 
         if (from_date && to_date) {
             where.sale_date = {

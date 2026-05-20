@@ -3993,11 +3993,13 @@ class _SaleScreenState extends State<SaleScreen> {
       items: orderItems,
     );
     Map<String, dynamic>? saveResponse;
+    Map<String, dynamic>? modifyResponse;
     if (isWorkingDraft) {
-      await ctrl.modifySale(_activeDraftId!, order, modificationNote: '');
+      modifyResponse =
+          await ctrl.modifySale(_activeDraftId!, order, modificationNote: '');
     } else {
       if (isEditing) {
-        await ctrl.modifySale(
+        modifyResponse = await ctrl.modifySale(
           _editingSaleId!,
           order,
           modificationNote: 'Sales bill updated from reprint section',
@@ -4007,8 +4009,11 @@ class _SaleScreenState extends State<SaleScreen> {
       }
     }
     final normalizedSaveSaleIds = _normalizeSaleIds(saveResponse?['sale_ids']) ?? const <int>[];
+    final modifiedSaleId =
+        int.tryParse((modifyResponse?['sale_id'] ?? 0).toString()) ?? 0;
     final savedSaleIds = <int>[
       ...normalizedSaveSaleIds,
+      if (modifiedSaleId > 0) modifiedSaleId,
       if (normalizedSaveSaleIds.isEmpty)
         ...(() {
           final fallbackSaleId =
@@ -4032,7 +4037,9 @@ class _SaleScreenState extends State<SaleScreen> {
       );
       await _loadCustomerOutstanding();
     }
-    final savedSaleId = savedSaleIds.isNotEmpty ? savedSaleIds.first : 0;
+    final savedSaleId = savedSaleIds.isNotEmpty
+        ? savedSaleIds.first
+        : (isWorkingDraft ? (_activeDraftId ?? 0) : 0);
     if (status == 'COMPLETED' &&
         _pendingAdvanceApplied > 0 &&
         savedSaleId > 0 &&
@@ -4071,7 +4078,9 @@ class _SaleScreenState extends State<SaleScreen> {
     final shouldPrint = status == 'COMPLETED' &&
         (printAfterSave || (settingsCtrl.settings?.autoPrintOnSave ?? false));
     if (shouldPrint) {
-      final idsToPrint = savedSaleIds.isNotEmpty ? savedSaleIds : [savedSaleId];
+      final idsToPrint = savedSaleIds.isNotEmpty
+          ? savedSaleIds
+          : [savedSaleId];
       for (final saleId in idsToPrint) {
         if (saleId <= 0) continue;
         SaleOrder printOrder = order;
@@ -4105,6 +4114,9 @@ class _SaleScreenState extends State<SaleScreen> {
       _pendingPreviousAdjustment = 0;
       _pendingAdvanceApplied = 0;
       _pendingAdvanceCreated = 0;
+      try {
+        _saleNo.text = await ctrl.getNextSaleNo();
+      } catch (_) {}
     }
     if (isEditing) {
       Navigator.pop(context, true);
@@ -4138,6 +4150,8 @@ class _SaleScreenState extends State<SaleScreen> {
     final preserveCustomer = preserveRecurringSchemes && hasCustomerContext;
     setState(() {
       _activeDraftId = null;
+      _editingSaleId = null;
+      _saleNo.clear();
       _items.clear();
       if (!preserveCustomer) {
         _selectedCustomer = null;
@@ -5887,28 +5901,7 @@ class _SaleScreenState extends State<SaleScreen> {
                     width: 7,
                   ),
                   InkWell(
-                    onTap: () {
-                      setState(() {
-                        _items.clear();
-                        _selectedScheme = null;
-                        _schemeManuallyRemoved = false;
-                        _manualDiscountType = 'AMOUNT';
-                        _manualDiscountValue.text = '0';
-                        _paymentEntries = const [];
-                        _customerName.clear();
-                        _customerPhone.clear();
-                        _customerAddress.clear();
-                        _customerGstin.clear();
-                        _selectedCustomer = null;
-                        _availableLoyaltyPoints = 0;
-                        _redeemPointsInput = 0;
-                        _loyaltyProgramActive = false;
-                        _loyaltyRedemptionValue = 1;
-                        _loyaltyMaxRedeemPerBill = 0;
-                        _applyBillingDefaults();
-                        _syncAmountPaidWithInvoice();
-                      });
-                    },
+                    onTap: _resetSaleForm,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),

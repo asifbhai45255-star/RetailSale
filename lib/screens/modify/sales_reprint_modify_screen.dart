@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -28,6 +30,13 @@ class _SalesReprintModifyScreenState extends State<SalesReprintModifyScreen> {
   Map<String, dynamic>? _selectedDetails;
   SaleOrder? _selectedOrder;
 
+  int _saleNoNumericValue(String? saleNo) {
+    final raw = (saleNo ?? '').trim();
+    final match = RegExp(r'(\d+)(?!.*\d)').firstMatch(raw);
+    if (match == null) return 1 << 30;
+    return int.tryParse(match.group(1) ?? '') ?? (1 << 30);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +63,14 @@ class _SalesReprintModifyScreenState extends State<SalesReprintModifyScreen> {
         toDate: _toDate,
         search: _searchCtrl.text,
       );
+      sales.sort((a, b) {
+        final aNo = _saleNoNumericValue(a['sale_no']?.toString());
+        final bNo = _saleNoNumericValue(b['sale_no']?.toString());
+        if (aNo != bNo) return aNo.compareTo(bNo);
+        final aId = int.tryParse('${a['id'] ?? 0}') ?? 0;
+        final bId = int.tryParse('${b['id'] ?? 0}') ?? 0;
+        return aId.compareTo(bId);
+      });
       setState(() {
         _sales = sales;
         final selectedId = _selectedSale?['id'];
@@ -131,6 +148,275 @@ class _SalesReprintModifyScreenState extends State<SalesReprintModifyScreen> {
     if (changed == true) {
       await _loadSales();
     }
+  }
+
+  Future<void> _modifyPaymentSelected() async {
+    final saleId = int.tryParse('${_selectedSale?['id'] ?? ''}');
+    if (saleId == null || _selectedOrder == null) return;
+
+    final selectedPayment = await _showPaymentModeDialog(
+      initialMode: _selectedOrder!.paymentMode,
+      netAmount: _selectedOrder!.netAmount,
+      currentReference: _selectedOrder!.paymentReference,
+      currentPaid: _selectedOrder!.amountPaid,
+      currentDue: _selectedOrder!.balanceDue,
+    );
+    if (selectedPayment == null) return;
+
+    setState(() => _loading = true);
+    try {
+      await ctrl.updateSalePaymentMode(
+        saleId: saleId,
+        paymentMode: selectedPayment['payment_mode'] as String,
+        paymentLines:
+            (selectedPayment['payment_lines'] as List? ?? const [])
+                .map((entry) => Map<String, dynamic>.from(entry))
+                .toList(),
+      );
+      await _loadSales();
+      if (_selectedSale != null) {
+        await _selectSale(_selectedSale!);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Payment updated and ledger synced.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update payment mode: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  List<Map<String, dynamic>> _decodePaymentLines(
+    String? paymentReference, {
+    required String fallbackMode,
+    required double fallbackPaid,
+    required double fallbackDue,
+  }) {
+    final raw = (paymentReference ?? '').trim();
+    if (raw.startsWith('POSPAY:')) {
+      try {
+        final decoded = jsonDecode(raw.substring(7));
+        if (decoded is List) {
+          final rows = decoded
+              .map((entry) => {
+                    'method': (entry['method'] ?? 'CASH').toString().trim().toUpperCase(),
+                    'amount':
+                        double.tryParse((entry['amount'] ?? 0).toString()) ?? 0,
+                  })
+              .where((entry) => (entry['amount'] as double) > 0)
+              .toList();
+          if (rows.isNotEmpty) return rows;
+        }
+      } catch (_) {}
+    }
+
+    final fallback = <Map<String, dynamic>>[];
+    if (fallbackPaid > 0) {
+      fallback.add({'method': fallbackMode.toUpperCase(), 'amount': fallbackPaid});
+    }
+    if (fallbackDue > 0) {
+      fallback.add({'method': 'CREDIT', 'amount': fallbackDue});
+    }
+    return fallback;
+  }
+
+  Future<Map<String, dynamic>?> _showPaymentModeDialog({
+    required String initialMode,
+    required double netAmount,
+    required String? currentReference,
+    required double currentPaid,
+    required double currentDue,
+  }) async {
+    final allowedModes = const ['CASH', 'CARD', 'UPI', 'BANK', 'CREDIT'];
+    final initialLines = _decodePaymentLines(
+      currentReference,
+      fallbackMode: initialMode,
+      fallbackPaid: currentPaid,
+      fallbackDue: currentDue,
+    );
+    String mode1 =
+        (initialLines.isNotEmpty ? '${initialLines[0]['method']}' : initialMode)
+            .toUpperCase();
+    String amount1 = initialLines.isNotEmpty
+        ? (initialLines[0]['amount'] as double).toStringAsFixed(2)
+        : netAmount.toStringAsFixed(2);
+    String mode2 =
+        initialLines.length > 1 ? '${initialLines[1]['method']}'.toUpperCase() : 'UPI';
+    String amount2 = initialLines.length > 1
+        ? (initialLines[1]['amount'] as double).toStringAsFixed(2)
+        : '0.00';
+    bool useSecond = initialLines.length > 1;
+
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setInnerState) {
+            return AlertDialog(
+              title: const Text('Modify Payment Mode'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Update payment split. Ledger will be synced to these methods.',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          value: allowedModes.contains(mode1) ? mode1 : 'CASH',
+                          decoration: const InputDecoration(
+                            labelText: 'Method 1',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: allowedModes
+                              .map((entry) => DropdownMenuItem(
+                                    value: entry,
+                                    child: Text(entry),
+                                  ))
+                              .toList(),
+                          onChanged: (value) =>
+                              setInnerState(() => mode1 = value ?? 'CASH'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: TextFormField(
+                          initialValue: amount1,
+                          decoration: const InputDecoration(
+                            labelText: 'Amount 1',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          onChanged: (value) => amount1 = value.trim(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: useSecond,
+                        onChanged: (value) =>
+                            setInnerState(() => useSecond = value ?? false),
+                      ),
+                      const Text('Use second payment method'),
+                    ],
+                  ),
+                  if (useSecond) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            value: allowedModes.contains(mode2) ? mode2 : 'UPI',
+                            decoration: const InputDecoration(
+                              labelText: 'Method 2',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: allowedModes
+                                .map((entry) => DropdownMenuItem(
+                                      value: entry,
+                                      child: Text(entry),
+                                    ))
+                                .toList(),
+                            onChanged: (value) =>
+                                setInnerState(() => mode2 = value ?? 'UPI'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            initialValue: amount2,
+                            decoration: const InputDecoration(
+                              labelText: 'Amount 2',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (value) => amount2 = value.trim(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  DropdownButtonFormField<String>(
+                    value: allowedModes.contains(mode1) ? mode1 : 'CASH',
+                    decoration: const InputDecoration(
+                      labelText: 'Primary Mode (Bill Header)',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: allowedModes
+                        .map(
+                          (entry) => DropdownMenuItem(
+                            value: entry,
+                            child: Text(entry),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setInnerState(() => mode1 = value ?? 'CASH');
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final a1 = double.tryParse(amount1) ?? 0;
+                    final a2 = useSecond ? (double.tryParse(amount2) ?? 0) : 0;
+                    final lines = <Map<String, dynamic>>[];
+                    if (a1 > 0) lines.add({'method': mode1, 'amount': a1});
+                    if (useSecond && a2 > 0) {
+                      lines.add({'method': mode2, 'amount': a2});
+                    }
+                    if (lines.isEmpty) return;
+                    final total = a1 + (useSecond ? a2 : 0);
+                    if ((total - netAmount).abs() > 0.01) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Payment total must match bill amount ${netAmount.toStringAsFixed(2)}',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.of(context).pop({
+                      'payment_mode': mode1,
+                      'payment_lines': lines,
+                    });
+                  },
+                  child: const Text('Update'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _closeScreen() {
@@ -312,17 +598,6 @@ class _SalesReprintModifyScreenState extends State<SalesReprintModifyScreen> {
                                           ],
                                         ),
                                       ),
-                                      FilledButton.icon(
-                                        onPressed: _printSelected,
-                                        icon: const Icon(Icons.print_outlined),
-                                        label: const Text('Print'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      OutlinedButton.icon(
-                                        onPressed: _modifySelected,
-                                        icon: const Icon(Icons.edit_outlined),
-                                        label: const Text('Modify'),
-                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 16),
@@ -413,6 +688,22 @@ class _SalesReprintModifyScreenState extends State<SalesReprintModifyScreen> {
                                                 Icons.print_outlined,
                                               ),
                                               label: const Text('Print'),
+                                            ),
+                                          ),
+                                        ),
+                                        Tooltip(
+                                          message:
+                                              'Correct bill payment mode and sync ledger',
+                                          child: SizedBox(
+                                            width: 210,
+                                            height: 56,
+                                            child: FilledButton.icon(
+                                              onPressed: _modifyPaymentSelected,
+                                              icon: const Icon(
+                                                Icons.payments_outlined,
+                                              ),
+                                              label:
+                                                  const Text('Modify Payment'),
                                             ),
                                           ),
                                         ),

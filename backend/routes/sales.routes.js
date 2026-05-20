@@ -38,6 +38,7 @@ router.delete('/vouchers/:code', ctrl.deleteVoucher);
 router.post('/validate-voucher', ctrl.validateVoucher);
 router.post('/schemes', ctrl.createScheme);
 router.put('/schemes/:id', ctrl.updateScheme);
+router.put('/:id/payment-mode', ctrl.updateSalePaymentMode);
 router.put('/:id', ctrl.modifySale);
 router.delete('/schemes/:id', ctrl.deleteScheme);
 router.post('/', ctrl.createSale);

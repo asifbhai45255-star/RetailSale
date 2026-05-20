@@ -1936,8 +1936,10 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
           _summaryWrap([
             _summaryCard(
                 'Deposit', _money(ctrl.depositTotal), Colors.blueGrey),
-            _summaryCard('In', _money(_ledgerCreditGrandTotal), Colors.green),
-            _summaryCard('Out', _money(_ledgerDebitGrandTotal), Colors.red),
+            _summaryCard('Credit', _money(_ledgerCreditGrandTotal), Colors.green),
+            _summaryCard('Debit', _money(_ledgerDebitGrandTotal), Colors.red),
+            _summaryCard(
+                'Outstanding', _money(_ledgerOutstandingGrandTotal), Colors.deepOrange),
             _summaryCard('Closing', _money(ctrl.closingBalance), Colors.indigo),
             ...visibleLedgerMethods.map(
               (entry) => _summaryCard(

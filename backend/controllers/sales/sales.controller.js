@@ -1,6 +1,6 @@
 const audit = require('../../services/audit.service');
 const { insertLedger } = require('../../services/stockLedger.service');
-const { createLedgerEntry } = require('../../services/cashLedger.service');
+const { createLedgerEntry, recalculateLedgerBalances } = require('../../services/cashLedger.service');
 const { applyLoyaltyOnCompletedSale } = require('../../services/loyalty.service');
 const { Op, fn, col, where: sqlWhere } = require('sequelize');
 const numberingHelper = require('../inventory/numberingSettingsV2.controller');
@@ -85,6 +85,37 @@ function incrementSaleNo(saleNo) {
     const width = numeric.length;
     const nextValue = String(Number(numeric) + 1).padStart(width, '0');
     return `${prefix}${nextValue}${postfix}`;
+}
+
+function buildDraftSaleNo() {
+    return `DRAFT-${Date.now()}`;
+}
+
+function encodePaymentReferenceFromLines(lines = []) {
+    const normalized = (Array.isArray(lines) ? lines : [])
+        .map((row) => ({
+            method: String(row.method || '').trim().toUpperCase(),
+            amount: toAmount(row.amount)
+        }))
+        .filter((row) => row.method && row.amount > 0);
+    return `POSPAY:${JSON.stringify(normalized)}`;
+}
+
+function decodePaymentReferenceLines(rawReference) {
+    const raw = String(rawReference || '').trim();
+    if (!raw.startsWith('POSPAY:')) return [];
+    try {
+        const parsed = JSON.parse(raw.substring(7));
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+            .map((row) => ({
+                method: String(row?.method || '').trim().toUpperCase(),
+                amount: toAmount(row?.amount)
+            }))
+            .filter((row) => row.method && row.amount > 0);
+    } catch (_) {
+        return [];
+    }
 }
 
 function calculateTaxesForAmount({
@@ -1926,27 +1957,35 @@ async function recordSalePayment({
 }) {
     if (sale.status !== 'COMPLETED') return;
     if (netAmount <= 0 && amountPaid <= 0 && balanceDue <= 0) return;
+    const splitLines = decodePaymentReferenceLines(header.payment_reference);
+    const nonCreditSplit = splitLines.filter((row) => row.method !== 'CREDIT');
+    const hasUsableSplit = nonCreditSplit.length > 0;
+    const paymentLines = hasUsableSplit
+        ? nonCreditSplit
+        : [{ method: paymentMode, amount: Math.min(amountPaid, netAmount) }];
 
-    await createLedgerEntry({
-        db: req.propertyDb,
-        outlet_id: req.user.outlet_id,
-        txn_date: header.sale_date,
-        transaction_type: paymentMode === 'CREDIT' || balanceDue > 0
-            ? 'SALE_CREDIT'
-            : 'SALE_CASH',
-        reference_type: 'SALE',
-        reference_id: sale.id,
-        reference_no: sale.sale_no,
-        party_name: header.customer_name || header.customer_phone || 'Walk-in Customer',
-        payment_method: paymentMode,
-        amount_in: Math.min(amountPaid, netAmount),
-
-        notes: balanceDue > 0
-            ? `Sale ${sale.sale_no} created with outstanding ${balanceDue.toFixed(2)}`
-            : `Payment received for sale ${sale.sale_no}`,
-        created_by,
-        transaction
-    });
+    for (const line of paymentLines) {
+        if (line.amount <= 0) continue;
+        await createLedgerEntry({
+            db: req.propertyDb,
+            outlet_id: req.user.outlet_id,
+            txn_date: header.sale_date,
+            transaction_type: paymentMode === 'CREDIT' || balanceDue > 0
+                ? 'SALE_CREDIT'
+                : 'SALE_CASH',
+            reference_type: 'SALE',
+            reference_id: sale.id,
+            reference_no: sale.sale_no,
+            party_name: header.customer_name || header.customer_phone || 'Walk-in Customer',
+            payment_method: line.method,
+            amount_in: line.amount,
+            notes: balanceDue > 0
+                ? `Sale ${sale.sale_no} created with outstanding ${balanceDue.toFixed(2)}`
+                : `Payment received for sale ${sale.sale_no}`,
+            created_by,
+            transaction
+        });
+    }
 }
 
 async function recordSaleBenefitExpenseEntries({
@@ -2477,11 +2516,16 @@ exports.createSale = async (req, res) => {
         const itemsPreSplit = header?.items_pre_split === true;
         const selectedSchemes = normalizeSelectedSchemes(header.selected_schemes || header.selectedSchemes);
         const status = header.status || 'COMPLETED';
+        const headerForCreate = { ...header };
+        if (status === 'DRAFT') {
+            // Drafts must never reserve official billing sequence.
+            headerForCreate.sale_no = buildDraftSaleNo();
+        }
         const voucherCode = String(header.voucher_code || '').trim().toUpperCase();
         const affectStock = header.affect_stock !== false;
 
 
-        const netAmount = toAmount(header.net_amount);
+        const netAmount = toAmount(headerForCreate.net_amount);
         const isZeroAmountSchemeBill = status === 'COMPLETED' &&
             saleItemsRaw.length === 0 &&
             netAmount === 0 &&
@@ -2498,8 +2542,8 @@ exports.createSale = async (req, res) => {
         if (voucherCode && status === 'COMPLETED') {
             const voucherCheck = await validateVoucherUsage(req, {
                 code: voucherCode,
-                orderAmount: header.sub_total || 0,
-                header
+                orderAmount: headerForCreate.sub_total || 0,
+                header: headerForCreate
             });
             if (!voucherCheck.valid) {
                 await t.rollback();
@@ -2515,7 +2559,7 @@ exports.createSale = async (req, res) => {
             await ensureCustomerSchemeEnrollments({
                 req,
                 transaction: t,
-                header,
+                header: headerForCreate,
                 selectedSchemes
             });
         }
@@ -2531,7 +2575,7 @@ exports.createSale = async (req, res) => {
             if (itemsPreSplit) {
                 subscriptionAllocation = await collectPreSplitSubscriptionAllocation({
                     req,
-                    header,
+                    header: headerForCreate,
                     items: saleItemsRaw,
                     transaction: t
                 });
@@ -2539,17 +2583,17 @@ exports.createSale = async (req, res) => {
             } else {
                 subscriptionAllocation = await allocateMilkSubscriptionCoverage({
                     req,
-                    header,
+                    header: headerForCreate,
                     items: saleItemsRaw,
                     transaction: t
                 });
                 saleItems = await applyItemCycleSchemesToSale({
                     req,
-                    header,
+                    header: headerForCreate,
                     items: subscriptionAllocation.items,
                     transaction: t
                 });
-                saleItems = await allocateItemAdvanceConsumption({ req, header, items: saleItems, transaction: t })
+                saleItems = await allocateItemAdvanceConsumption({ req, header: headerForCreate, items: saleItems, transaction: t })
                     .then((result) => result.items);
             }
         }
@@ -2596,10 +2640,10 @@ exports.createSale = async (req, res) => {
         );
         const hasSubscriptionFreeRows = splitItems.free.some((row) => row._subscription_free === true || row.is_advance_free === true);
         const hasSchemeFreeRows = splitItems.free.some((row) => row.is_scheme_free === true && !(row._subscription_free === true || row.is_advance_free === true));
-        const paidSaleNo = String(header.sale_no || '').trim();
+        const paidSaleNo = String(headerForCreate.sale_no || '').trim();
         const freeSaleNo = incrementSaleNo(paidSaleNo);
         const buildBillHeader = (saleNo, extra = {}) => ({
-            ...header,
+            ...headerForCreate,
             sale_no: saleNo,
             ...extra
         });
@@ -2824,22 +2868,23 @@ exports.modifySale = async (req, res) => {
     try {
         const saleId = Number(req.params.id);
         const { header, items } = req.body;
+        const headerForModify = { ...(header || {}) };
         const saleItemsRaw = Array.isArray(items) ? items : [];
-        const itemsPreSplit = header?.items_pre_split === true;
-        const selectedSchemes = normalizeSelectedSchemes(header.selected_schemes || header.selectedSchemes);
-        const status = header.status || 'COMPLETED';
-        const voucherCode = String(header.voucher_code || '').trim().toUpperCase();
-        const affectStock = header.affect_stock !== false;
+        const itemsPreSplit = headerForModify?.items_pre_split === true;
+        const selectedSchemes = normalizeSelectedSchemes(headerForModify.selected_schemes || headerForModify.selectedSchemes);
+        const status = headerForModify.status || 'COMPLETED';
+        const voucherCode = String(headerForModify.voucher_code || '').trim().toUpperCase();
+        const affectStock = headerForModify.affect_stock !== false;
 
         if (!Number.isFinite(saleId) || saleId <= 0) {
             return res.status(400).json({ success: false, message: 'Invalid sale id' });
         }
 
-        const netAmount = toAmount(header.net_amount);
+        const netAmount = toAmount(headerForModify.net_amount);
         const isZeroAmountSchemeBill = status === 'COMPLETED' &&
             saleItemsRaw.length === 0 &&
             netAmount === 0 &&
-            (Number(header.scheme_id) > 0 || String(header.scheme_name || '').trim().length > 0);
+            (Number(headerForModify.scheme_id) > 0 || String(headerForModify.scheme_name || '').trim().length > 0);
 
         if (saleItemsRaw.length === 0 && !isZeroAmountSchemeBill) {
             return res.status(400).json({
@@ -2874,12 +2919,29 @@ exports.modifySale = async (req, res) => {
             });
         }
 
+        if ((currentSale.status || '').toUpperCase() === 'DRAFT' &&
+            status === 'COMPLETED') {
+            const resolved = await numberingHelper.resolveNextNumber({
+                req,
+                module: 'SALES',
+                date: headerForModify.sale_date || new Date(),
+                outlet_id: req.user.outlet_id
+            });
+            if (!resolved || !resolved.number) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Sales numbering not configured'
+                });
+            }
+            headerForModify.sale_no = resolved.number;
+        }
+
         const ignoreSaleIds = await getSaleChainIds(req, currentSale, t);
         if (voucherCode && status === 'COMPLETED') {
             const voucherCheck = await validateVoucherUsage(req, {
                 code: voucherCode,
-                orderAmount: header.sub_total || 0,
-                header,
+                orderAmount: headerForModify.sub_total || 0,
+                header: headerForModify,
                 ignoreSaleIds
             });
             if (!voucherCheck.valid) {
@@ -2893,16 +2955,16 @@ exports.modifySale = async (req, res) => {
         }
 
         const saleItems = status === 'COMPLETED' && !itemsPreSplit
-            ? await applyItemCycleSchemesToSale({ req, header, items: saleItemsRaw, transaction: t })
+            ? await applyItemCycleSchemesToSale({ req, header: headerForModify, items: saleItemsRaw, transaction: t })
             : saleItemsRaw;
         const advanceAllocation = status === 'COMPLETED' && !itemsPreSplit
-            ? await allocateItemAdvanceConsumption({ req, header, items: saleItems, transaction: t })
+            ? await allocateItemAdvanceConsumption({ req, header: headerForModify, items: saleItems, transaction: t })
             : { items: saleItems, advanceAppliedAmount: 0 };
 
         const newSale = await createSaleVersion({
             req,
             transaction: t,
-            header,
+            header: headerForModify,
             items: advanceAllocation.items,
             overrides: {
                 original_sale_id: currentSale.original_sale_id || currentSale.id,
@@ -2910,7 +2972,7 @@ exports.modifySale = async (req, res) => {
                 version_no: toWholeNumber(currentSale.version_no, 1) + 1,
                 modified_by: req.user.id,
                 modified_at: new Date(),
-                modification_note: header.modification_note || 'Bill modified from reprint section'
+                modification_note: headerForModify.modification_note || 'Bill modified from reprint section'
             },
             createPayment: false,
             stockTxnType: 'SALE_MODIFY',
@@ -2923,7 +2985,7 @@ exports.modifySale = async (req, res) => {
             replaced_by_sale_id: newSale.id,
             modified_by: req.user.id,
             modified_at: new Date(),
-            modification_note: header.modification_note || 'Superseded by modified bill version'
+            modification_note: headerForModify.modification_note || 'Superseded by modified bill version'
         }, { transaction: t });
 
         if (status === 'COMPLETED' && affectStock) {
@@ -2939,9 +3001,9 @@ exports.modifySale = async (req, res) => {
         if (status === 'COMPLETED') {
             await markSingleUseSchemesAsConsumed({
                 req,
-                header,
+                header: headerForModify,
                 selectedSchemes,
-                appliedSchemeIds: collectAppliedSchemeIds(header, saleItems),
+                appliedSchemeIds: collectAppliedSchemeIds(headerForModify, saleItems),
                 transaction: t
             });
 
@@ -2950,7 +3012,7 @@ exports.modifySale = async (req, res) => {
                 outlet_id: req.user.outlet_id,
                 user_id: req.user.id,
                 sale: newSale,
-                header,
+                header: headerForModify,
                 transaction: t
             });
             await newSale.update({
@@ -2978,7 +3040,7 @@ exports.modifySale = async (req, res) => {
                 items: (currentSale.items || []).map((row) => row.toJSON())
             },
             new_data: {
-                header,
+                header: headerForModify,
                 items: advanceAllocation.items
             },
             outlet_id: req.user.outlet_id,
@@ -3004,6 +3066,215 @@ exports.modifySale = async (req, res) => {
     } catch (error) {
         await t.rollback();
         res.status(error.status || 500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+exports.updateSalePaymentMode = async (req, res) => {
+    const t = await req.propertyDb.transaction();
+    try {
+        const saleId = Number(req.params.id);
+        const paymentModeInput = String(req.body.payment_mode || req.body.paymentMode || '')
+            .trim()
+            .toUpperCase();
+        const paymentLinesRaw = Array.isArray(req.body.payment_lines || req.body.paymentLines)
+            ? (req.body.payment_lines || req.body.paymentLines)
+            : [];
+
+        if (!Number.isFinite(saleId) || saleId <= 0) {
+            await t.rollback();
+            return res.status(400).json({ success: false, message: 'Invalid sale id' });
+        }
+
+        const allowedModes = new Set(['CASH', 'CARD', 'UPI', 'BANK', 'CREDIT']);
+        if (!allowedModes.has(paymentModeInput) && paymentLinesRaw.length === 0) {
+            await t.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid payment mode. Allowed: CASH, CARD, UPI, BANK, CREDIT'
+            });
+        }
+
+        const sale = await req.propertyDb.models.sales_headers.findOne({
+            where: {
+                id: saleId,
+                outlet_id: req.user.outlet_id,
+                is_deleted: false,
+                is_latest: true
+            },
+            transaction: t
+        });
+
+        if (!sale) {
+            await t.rollback();
+            return res.status(404).json({ success: false, message: 'Sale not found' });
+        }
+
+        const previousMode = String(sale.payment_mode || '').trim().toUpperCase();
+        const netAmount = toAmount(sale.net_amount);
+        const previousPaymentReference = String(sale.payment_reference || '').trim();
+
+        const paymentLines = paymentLinesRaw
+            .map((row) => ({
+                method: String(row.method || '').trim().toUpperCase(),
+                amount: toAmount(row.amount)
+            }))
+            .filter((row) => allowedModes.has(row.method) && row.amount > 0);
+
+        if (paymentLines.length === 0) {
+            const fallbackAmountPaid = Math.min(toAmount(sale.amount_paid), netAmount);
+            const fallbackDue = Math.max(netAmount - fallbackAmountPaid, 0);
+            if (fallbackAmountPaid > 0) {
+                paymentLines.push({
+                    method: allowedModes.has(paymentModeInput) ? paymentModeInput : (previousMode || 'CASH'),
+                    amount: fallbackAmountPaid
+                });
+            }
+            if (fallbackDue > 0) {
+                paymentLines.push({ method: 'CREDIT', amount: fallbackDue });
+            }
+        }
+
+        const nonCreditLines = paymentLines.filter((row) => row.method !== 'CREDIT');
+        const creditLines = paymentLines.filter((row) => row.method === 'CREDIT');
+        const nonCreditCollected = toAmount(nonCreditLines.reduce((sum, row) => sum + toAmount(row.amount), 0));
+        const explicitCredit = toAmount(creditLines.reduce((sum, row) => sum + toAmount(row.amount), 0));
+        const paymentTotal = toAmount(paymentLines.reduce((sum, row) => sum + toAmount(row.amount), 0));
+        if (Math.abs(paymentTotal - netAmount) > 0.01) {
+            await t.rollback();
+            return res.status(400).json({
+                success: false,
+                message: `Payment total must match bill amount (${netAmount.toFixed(2)}).`
+            });
+        }
+        const remainingDue = Math.max(netAmount - nonCreditCollected, 0);
+        const creditDue = Math.max(explicitCredit, remainingDue);
+        const amountPaid = Math.min(nonCreditCollected, netAmount);
+        const balanceDue = Math.max(netAmount - amountPaid, 0);
+
+        let resolvedMode = paymentModeInput;
+        if (!allowedModes.has(resolvedMode)) {
+            if (nonCreditLines.length > 0) {
+                const primary = [...nonCreditLines].sort((a, b) => b.amount - a.amount)[0];
+                resolvedMode = primary?.method || 'CASH';
+            } else {
+                resolvedMode = 'CREDIT';
+            }
+        }
+        if (resolvedMode !== 'CREDIT' && amountPaid <= 0 && balanceDue > 0) {
+            resolvedMode = 'CREDIT';
+        }
+
+        const mergedLines = [...nonCreditLines];
+        if (creditDue > 0) {
+            mergedLines.push({ method: 'CREDIT', amount: creditDue });
+        }
+
+        const nextPaymentReference = encodePaymentReferenceFromLines(mergedLines);
+        const nextChangeAmount = resolvedMode === 'CASH'
+            ? Math.max(nonCreditCollected - netAmount, 0)
+            : 0;
+
+        const noChange = previousMode === resolvedMode &&
+            toAmount(sale.amount_paid) === amountPaid &&
+            toAmount(sale.balance_due) === balanceDue &&
+            previousPaymentReference === nextPaymentReference;
+        if (noChange) {
+            await t.commit();
+            return res.json({
+                success: true,
+                message: 'Payment details already up to date',
+                data: { sale_id: sale.id, sale_no: sale.sale_no, payment_mode: resolvedMode }
+            });
+        }
+
+        await sale.update({
+            payment_mode: resolvedMode,
+            amount_paid: amountPaid,
+            balance_due: balanceDue,
+            change_amount: nextChangeAmount,
+            payment_reference: nextPaymentReference
+        }, { transaction: t });
+
+        await req.propertyDb.models.cash_ledger.update(
+            { payment_method: resolvedMode },
+            {
+                where: {
+                    outlet_id: req.user.outlet_id,
+                    reference_type: 'SALE',
+                    reference_id: sale.id
+                },
+                transaction: t
+            }
+        );
+
+        await req.propertyDb.models.cash_ledger.destroy({
+            where: {
+                outlet_id: req.user.outlet_id,
+                reference_type: 'SALE',
+                reference_id: sale.id,
+                transaction_type: { [Op.in]: ['SALE_CASH', 'SALE_CREDIT'] }
+            },
+            transaction: t
+        });
+
+        const entryType = balanceDue > 0 ? 'SALE_CREDIT' : 'SALE_CASH';
+        for (const row of nonCreditLines) {
+            if (row.amount <= 0) continue;
+            await createLedgerEntry({
+                db: req.propertyDb,
+                outlet_id: req.user.outlet_id,
+                txn_date: sale.sale_date || new Date(),
+                transaction_type: entryType,
+                reference_type: 'SALE',
+                reference_id: sale.id,
+                reference_no: sale.sale_no,
+                party_name: sale.customer_name || sale.customer_phone || 'Walk-in Customer',
+                payment_method: row.method,
+                amount_in: row.amount,
+                notes: balanceDue > 0
+                    ? `Sale ${sale.sale_no} payment updated with outstanding ${balanceDue.toFixed(2)}`
+                    : `Payment updated for sale ${sale.sale_no}`,
+                created_by: req.user.id,
+                transaction: t
+            });
+        }
+
+        await recalculateLedgerBalances({
+            db: req.propertyDb,
+            outlet_id: req.user.outlet_id,
+            fromDate: sale.sale_date || new Date(),
+            transaction: t
+        });
+
+        await audit.log({
+            req,
+            module: 'SALES',
+            action: 'UPDATE_PAYMENT_MODE',
+            table: 'sales_headers',
+            recordId: sale.id,
+            old_data: { payment_mode: previousMode, payment_reference: previousPaymentReference },
+            new_data: { payment_mode: resolvedMode, payment_reference: nextPaymentReference },
+            outlet_id: req.user.outlet_id,
+            user_id: req.user.id
+        });
+
+        await t.commit();
+        return res.json({
+            success: true,
+            message: 'Payment mode updated and ledger synced',
+            data: {
+                sale_id: sale.id,
+                sale_no: sale.sale_no,
+                payment_mode: resolvedMode,
+                previous_payment_mode: previousMode
+            }
+        });
+    } catch (error) {
+        await t.rollback();
+        return res.status(error.status || 500).json({
             success: false,
             error: error.message
         });

@@ -397,8 +397,29 @@ class SalesController extends ChangeNotifier {
 
 
 
-  Future<void> modifySale(int id, SaleOrder payload, {required String modificationNote}) async {
-    await ApiClient.put('${ApiEndpoints.sales}/$id', payload.toJson());
+  Future<Map<String, dynamic>> modifySale(
+    int id,
+    SaleOrder payload, {
+    required String modificationNote,
+  }) async {
+    final res = await ApiClient.put('${ApiEndpoints.sales}/$id', payload.toJson());
+    return Map<String, dynamic>.from(res);
+  }
+
+  Future<Map<String, dynamic>> updateSalePaymentMode({
+    required int saleId,
+    required String paymentMode,
+    List<Map<String, dynamic>> paymentLines = const [],
+  }) async {
+    final payload = <String, dynamic>{'payment_mode': paymentMode};
+    if (paymentLines.isNotEmpty) {
+      payload['payment_lines'] = paymentLines;
+    }
+    final res = await ApiClient.put(
+      '${ApiEndpoints.sales}/$saleId/payment-mode',
+      payload,
+    );
+    return Map<String, dynamic>.from(res);
   }
 
   Future<List<Map<String, dynamic>>> listVouchers() async {

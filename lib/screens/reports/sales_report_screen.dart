@@ -261,7 +261,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
 
   List<SalesReport> get _billWiseSales {
     final query = _itemSearchCtrl.text.trim().toLowerCase();
-    return ctrl.list.where((sale) {
+    final filtered = ctrl.list.where((sale) {
       if (_isCustomerDataRow(sale)) return false;
       if (ctrl.paymentMode != null &&
           ctrl.paymentMode!.isNotEmpty &&
@@ -274,6 +274,20 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           sale.customerPhone.toLowerCase().contains(query) ||
           sale.paymentMode.toLowerCase().contains(query);
     }).toList();
+    filtered.sort((a, b) {
+      final aNo = _saleNoNumericValue(a.saleNo);
+      final bNo = _saleNoNumericValue(b.saleNo);
+      if (aNo != bNo) return aNo.compareTo(bNo);
+      return a.saleNo.compareTo(b.saleNo);
+    });
+    return filtered;
+  }
+
+  int _saleNoNumericValue(String saleNo) {
+    final raw = saleNo.trim();
+    final match = RegExp(r'(\d+)').firstMatch(raw);
+    if (match == null) return 1 << 30;
+    return int.tryParse(match.group(1) ?? '') ?? (1 << 30);
   }
 
   bool _isCustomerDataRow(SalesReport sale) {
