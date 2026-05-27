@@ -553,9 +553,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 initialValue: uiPrefsCtrl.textfieldSize,
                 decoration: const InputDecoration(
                   labelText: 'Global Textfield Size',
-                  helperText: 'Apply compact, normal, or comfortable height',
+                  helperText:
+                      'Apply extra compact, compact, normal, or comfortable height',
                 ),
                 items: const [
+                  DropdownMenuItem(
+                    value: 'extra_compact',
+                    child: Text('Extra Compact'),
+                  ),
                   DropdownMenuItem(
                     value: 'compact',
                     child: Text('Compact'),

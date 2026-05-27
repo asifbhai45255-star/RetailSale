@@ -50,6 +50,13 @@ class MyApp extends StatelessWidget {
     EdgeInsets textFieldPadding;
     double minInputHeight;
     switch (uiPrefs.textfieldSize) {
+      case 'extra_compact':
+        textFieldPadding = const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 8,
+        );
+        minInputHeight = 36;
+        break;
       case 'compact':
         textFieldPadding = const EdgeInsets.symmetric(
           horizontal: 12,

@@ -137,14 +137,14 @@ else if (action === 'clean_old_backups') {
         sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       }
       
-      // FIX 2: Prevent duplicates by matching Outlet Code (Index 1) or Outlet ID (Index 2)
+      // FIX 2: Prevent duplicates by matching ONLY Outlet Code (Index 1).
+      // Do not match by outlet_id because local/offline databases can reuse same outlet_id across outlets.
       var targetOutletCode = newRow[1];
-      var targetOutletId = newRow[2];
       var rowIndex = -1;
       
       for (var r = 1; r < data.length; r++) {
-        // If the Outlet Code OR the Outlet ID match, we know it's the same store!
-        if (data[r][1] == targetOutletCode || data[r][2] == targetOutletId) { 
+        // Update only when outlet_code matches exactly.
+        if (String(data[r][1]) === String(targetOutletCode)) { 
           rowIndex = r + 1; // +1 because sheet rows are 1-indexed
           break; 
         }

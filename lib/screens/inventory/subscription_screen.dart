@@ -7,8 +7,10 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
 
 import '../../controllers/sales/sales_controller.dart';
+import '../../controllers/settings/ui_preferences_controller.dart';
 import '../../models/inventory/item_model.dart';
 import '../../models/inventory/sale_customer_model.dart';
 
@@ -2099,6 +2101,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ? const Center(child: CircularProgressIndicator())
           : LayoutBuilder(
               builder: (context, constraints) {
+                final uiPrefs = context.watch<UiPreferencesController>();
                 final isWide = constraints.maxWidth >= 1200;
                 final isMedium = constraints.maxWidth >= 760;
                 const horizontalGap = 12.0;
@@ -2123,18 +2126,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ? (compactFieldWidth * 2) + horizontalGap
                     : canvasWidth;
                 final searchFieldWidth = canvasWidth;
+                final isExtraCompactFields =
+                    uiPrefs.textfieldSize == 'extra_compact';
+                final isCompactFields = uiPrefs.textfieldSize == 'compact';
+                final isComfortableFields =
+                    uiPrefs.textfieldSize == 'comfortable';
+                final fieldPadding = isExtraCompactFields
+                    ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+                    : isCompactFields
+                    ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                    : isComfortableFields
+                        ? const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 18,
+                          )
+                        : const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          );
+                final minFieldHeight = isExtraCompactFields
+                    ? 36.0
+                    : isCompactFields
+                    ? 40.0
+                    : isComfortableFields
+                        ? 56.0
+                        : 46.0;
 
                 return Theme(
                     data: Theme.of(context).copyWith(
                       inputDecorationTheme: InputDecorationTheme(
                         filled: true,
                         fillColor: Colors.white,
-                        isDense: true,
-                        constraints: const BoxConstraints(minHeight: 46),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
+                        isDense: isCompactFields || isExtraCompactFields,
+                        constraints: BoxConstraints(minHeight: minFieldHeight),
+                        contentPadding: fieldPadding,
                         labelStyle: const TextStyle(
                           color: Color(0xFF475569),
                           fontSize: 14,
