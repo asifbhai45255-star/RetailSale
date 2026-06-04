@@ -30,6 +30,7 @@ import '../inventory/purchaseorderinv.dart';
 import '../inventory/receiving.dart';
 import '../inventory/requestiteminv.dart';
 import '../inventory/salescreen.dart';
+import '../inventory/stocktransferinv.dart';
 import '../inventory/returnissueitem.dart';
 import '../inventory/supplier_return_refund_screen.dart';
 import '../inventory/supplier_return_screen.dart';
@@ -54,6 +55,7 @@ import '../reports/subscription_report_screen.dart';
 import '../reports/sales_report_screen.dart';
 import '../reports/store_analysis_screen.dart';
 import '../reports/stock_ledger_report_screen.dart';
+import '../reports/stock_transfer_report_screen.dart';
 import '../reports/stockbalance.dart';
 import '../reports/stockinreport.dart';
 import '../reports/stockoutreportfo.dart';
@@ -1375,6 +1377,11 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const IssueScreen()));
             }),
+            _drawerItem(Icons.swap_horiz, 'Stock Transfer',
+                permission: 'STOCK_OUT', onTap: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const StockTransferScreen()));
+            }),
             _drawerItem(Icons.undo, 'Return Department Items',
                 permission: 'RETURN', onTap: () {
               Navigator.push(
@@ -1620,6 +1627,13 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
                   context,
                   MaterialPageRoute(
                       builder: (_) => const StockOutReportScreen()));
+            }),
+            _drawerItem(Icons.swap_horiz, 'Stock Transfer Report',
+                permission: 'STOCK_OUT_REPORT', onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const StockTransferReportScreen()));
             }),
             if (_showRetailSalesReportSection)
               _drawerItem(Icons.point_of_sale, 'Retail Sales Report',

@@ -2,6 +2,7 @@ class ApiEndpoints {
   static const login = '/api/auth/login';
 
   static const items = '/api/inventory/items';
+  static const stockTransfer = '/api/inventory/stock-transfer';
 
   static const propertyInfo = '/api/inventory/property-info';
 
@@ -62,6 +63,8 @@ class ApiEndpoints {
   static const stockInReport = '/api/reports/stock-in';
 
   static const stockOutReport = '/api/reports/stock-out';
+
+  static const stockTransferReport = '/api/reports/stock-transfer';
 
   static const supplierBills = '/api/suppliers/bills/list';
 

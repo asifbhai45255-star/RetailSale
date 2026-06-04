@@ -84,8 +84,9 @@ class ItemController extends ChangeNotifier {
     notifyListeners();
 
     final res = await ApiClient.post(
-      '${ApiEndpoints.items}/$id/open-pack',
+      ApiEndpoints.stockTransfer,
       {
+        'item_id': id,
         'pack_count': packCount,
         'note': note,
       },

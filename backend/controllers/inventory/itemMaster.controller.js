@@ -544,7 +544,7 @@ exports.openPackStock = async (req, res) => {
 
     try {
         const outlet_id = req.user.outlet_id;
-        const itemId = Number(req.params.id);
+        const itemId = Number(req.params.id ?? req.body.item_id);
         const packCount = Number(req.body.pack_count ?? 1);
         const note = String(req.body.note || '').trim() || null;
 
@@ -683,22 +683,39 @@ exports.getNextItemCode = async (req, res) => {
     try {
         const outlet_id = req.user.outlet_id;
 
-        const last = await req.propertyDb.models.item_master.findOne({
+        const items = await req.propertyDb.models.item_master.findAll({
             where: { outlet_id },
-            order: [['id', 'DESC']],
             attributes: ['item_code'],
+            order: [['id', 'ASC']],
         });
 
-        let nextNum = 1;
+        const usedCodes = new Set();
+        let maxNum = 0;
 
-        if (last?.item_code) {
-            const num = parseInt(last.item_code.replace(/[^\d]/g, '')) || 0;
-            nextNum = num + 1;
+        for (const row of items) {
+            const code = String(row.item_code || '').trim();
+            if (!code) continue;
+            usedCodes.add(code.toUpperCase());
+
+            const match = code.match(/(\d+)$/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (Number.isFinite(num) && num > maxNum) {
+                    maxNum = num;
+                }
+            }
+        }
+
+        let nextNum = maxNum + 1;
+        let nextCode = `ITEM${nextNum}`;
+        while (usedCodes.has(nextCode.toUpperCase())) {
+            nextNum += 1;
+            nextCode = `ITEM${nextNum}`;
         }
 
         res.json({
             success: true,
-            data: `item${nextNum}`,
+            data: nextCode,
         });
 
     } catch (err) {

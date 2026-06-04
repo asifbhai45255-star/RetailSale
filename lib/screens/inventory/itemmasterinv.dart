@@ -16,6 +16,7 @@ import '../../models/inventory/settings/master_model.dart';
 import '../../utils/inclusive_rate_helper.dart';
 import '../../widgets/entry_shortcuts.dart';
 import 'item_barcode_manager_screen.dart';
+import 'stocktransferinv.dart';
 
 class ItemMasterScreen extends StatefulWidget {
   const ItemMasterScreen({super.key});
@@ -394,8 +395,9 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
         schemeApplicable: _schemeApplicable,
         openingBalance:
             double.parse(_opening.text.isEmpty ? "0" : _opening.text),
-        packQty: double.parse(_packQty.text.isEmpty ? "0" : _packQty.text),
-        looseItemCode: _looseItemCode.text.trim(),
+        packQty: _editIndex == null ? 0 : _items[_editIndex!].packQty,
+        looseItemCode:
+            _editIndex == null ? '' : _items[_editIndex!].looseItemCode,
         minLevel: int.parse(_min.text.isEmpty ? "0" : _min.text),
         maxLevel: int.parse(_max.text.isEmpty ? "0" : _max.text),
         stockable: _stockable,
@@ -703,8 +705,6 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
       TextCellValue('Brand'),
       TextCellValue('Unit'),
       TextCellValue('Barcode'),
-      TextCellValue('Pack Qty'),
-      TextCellValue('Loose Item Code'),
       TextCellValue('Rate'),
       TextCellValue('Sale Rate'),
       TextCellValue('Tax Type'),
@@ -726,8 +726,6 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
         TextCellValue(item.brand),
         TextCellValue(item.unit),
         TextCellValue(item.barcode),
-        DoubleCellValue(item.packQty),
-        TextCellValue(item.looseItemCode),
         DoubleCellValue(item.rate),
         DoubleCellValue(item.retailSalePrice),
         TextCellValue(item.taxType),
@@ -820,56 +818,48 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
           "unit": cellByHeader(row, headers, 'Unit', fallbackIndex: 6)?.toString(),
           "barcode":
               cellByHeader(row, headers, 'Barcode', fallbackIndex: 7)?.toString(),
-          "pack_qty": double.tryParse(
-                  cellByHeader(row, headers, 'Pack Qty', fallbackIndex: 8)
-                          ?.toString() ??
-                      '0') ??
-              0,
-          "loose_item_code":
-              cellByHeader(row, headers, 'Loose Item Code', fallbackIndex: 9)
-                  ?.toString(),
           "rate": double.tryParse(
-                  cellByHeader(row, headers, 'Rate', fallbackIndex: 10)
+                  cellByHeader(row, headers, 'Rate', fallbackIndex: 8)
                           ?.toString() ??
                       '0') ??
               0,
           "retail_sale_price": double.tryParse(
-                  cellByHeader(row, headers, 'Sale Rate', fallbackIndex: 11)
+                  cellByHeader(row, headers, 'Sale Rate', fallbackIndex: 9)
                           ?.toString() ??
                       '0') ??
               0,
-          "tax_type": cellByHeader(row, headers, 'Tax Type', fallbackIndex: 12)
+          "tax_type": cellByHeader(row, headers, 'Tax Type', fallbackIndex: 10)
                   ?.toString() ??
               'GST',
           "tax_percent": double.tryParse(
-                  cellByHeader(row, headers, 'Tax Percent', fallbackIndex: 13)
+                  cellByHeader(row, headers, 'Tax Percent', fallbackIndex: 11)
                           ?.toString() ??
                       '0') ??
               0,
           "discount_applicable":
               _toBool(cellByHeader(row, headers, 'Discount Applicable',
-                  fallbackIndex: 14), defaultValue: true),
+                  fallbackIndex: 12), defaultValue: true),
           "scheme_applicable": _toBool(
               cellByHeader(row, headers, 'Scheme Applicable',
-                  fallbackIndex: 15),
+                  fallbackIndex: 13),
               defaultValue: true),
           "opening_balance": double.tryParse(
-                  cellByHeader(row, headers, 'Opening', fallbackIndex: 16)
+                  cellByHeader(row, headers, 'Opening', fallbackIndex: 14)
                           ?.toString() ??
                       '0') ??
               0,
           "min_level": int.tryParse(
-                  cellByHeader(row, headers, 'Min', fallbackIndex: 17)
+                  cellByHeader(row, headers, 'Min', fallbackIndex: 15)
                           ?.toString() ??
                       '0') ??
               0,
           "max_level": int.tryParse(
-                  cellByHeader(row, headers, 'Max', fallbackIndex: 18)
+                  cellByHeader(row, headers, 'Max', fallbackIndex: 16)
                           ?.toString() ??
                       '0') ??
               0,
           "stockable": _toBool(
-              cellByHeader(row, headers, 'Stockable', fallbackIndex: 19),
+              cellByHeader(row, headers, 'Stockable', fallbackIndex: 17),
               defaultValue: true),
         });
       }
@@ -972,6 +962,18 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
               tooltip: 'Generate Barcode Labels',
               onPressed: _openBarcodeManager,
             ),
+            IconButton(
+              icon: const Icon(Icons.swap_horiz),
+              tooltip: 'Stock Transfer',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const StockTransferScreen(),
+                  ),
+                );
+              },
+            ),
           ],
         ),
         body: FocusTraversalGroup(
@@ -1018,15 +1020,6 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
             _text(_barcode, 'Barcode / Scan Code',
                 focusNode: _barcodeFocus,
                 prevNode: _hsnSacFocus,
-                onSubmit: () => _packQtyFocus.requestFocus()),
-            _text(_packQty, 'Pack Qty',
-                isDouble: true,
-                focusNode: _packQtyFocus,
-                prevNode: _barcodeFocus,
-                onSubmit: () => _looseItemCodeFocus.requestFocus()),
-            _text(_looseItemCode, 'Loose Item Code',
-                focusNode: _looseItemCodeFocus,
-                prevNode: _packQtyFocus,
                 onSubmit: () => _groupFocus.requestFocus()),
             SizedBox(
               width: 220,
@@ -2053,8 +2046,6 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
                         DataColumn(label: Text('Brand')),
                         DataColumn(label: Text('Unit')),
                         DataColumn(label: Text('Barcode')),
-                        DataColumn(label: Text('Pack Qty')),
-                        DataColumn(label: Text('Loose Item')),
                         DataColumn(label: Text('Buy Rate')),
                         DataColumn(label: Text('Sale Rate')),
                         DataColumn(label: Text('Tax Type')),
@@ -2087,10 +2078,6 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
                             DataCell(Text(it.brand)),
                             DataCell(Text(it.unit)),
                             DataCell(Text(it.barcode)),
-                            DataCell(Text(
-                                it.packQty > 0 ? it.packQty.toString() : '-')),
-                            DataCell(Text(
-                                it.looseItemCode.isNotEmpty ? it.looseItemCode : '-')),
                             DataCell(Text(it.rate.toStringAsFixed(2))),
                             DataCell(
                                 Text(it.retailSalePrice.toStringAsFixed(2))),
@@ -2112,13 +2099,6 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
                               Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (it.packQty > 0 &&
-                                    it.looseItemCode.isNotEmpty)
-                                  IconButton(
-                                      tooltip: 'Open Pack',
-                                      icon: const Icon(Icons.inventory_2_outlined,
-                                          color: Colors.green),
-                                      onPressed: () => _openPackDialog(i)),
                                 IconButton(
                                       icon: const Icon(Icons.edit),
                                       onPressed: () => _editItem(i)),
