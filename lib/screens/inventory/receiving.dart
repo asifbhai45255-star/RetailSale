@@ -68,6 +68,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
   final FocusNode _taxFocus = FocusNode();
   final FocusNode _expDateFocus = FocusNode();
   final FocusNode _departmentFocus = FocusNode();
+  final FocusNode _remarksFocus = FocusNode();
   final FocusNode _addBtnFocus = FocusNode();
   final FocusNode _saveBtnFocus = FocusNode();
 
@@ -105,6 +106,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
     _taxFocus.dispose();
     _expDateFocus.dispose();
     _departmentFocus.dispose();
+    _remarksFocus.dispose();
     _addBtnFocus.dispose();
     _saveBtnFocus.dispose();
     _tableFocusNode.dispose();
@@ -188,6 +190,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
   final _rate = TextEditingController();
   final _saleRate = TextEditingController();
   final _tax = TextEditingController();
+  final _remarks = TextEditingController();
   DateTime _expDate = DateTime.now();
 
   int? _editIndex;
@@ -277,6 +280,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
       itemId: _selectedBrandItemId.toString(),
       expiryDate: _expDate,
       department: !_isStockable ? _selectedDepartment!.id.toString() : "",
+      remarks: _remarks.text.trim(),
       lineStatus: 'CLOSED',
     );
 
@@ -369,6 +373,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
                   "tax": e.tax,
                   "line_status": e.lineStatus,
                   "department": e.department,
+                  "remarks": e.remarks,
                   "expiry_date": e.expiryDate != null
                       ? DateFormat('yyyy-MM-dd').format(e.expiryDate!)
                       : null
@@ -477,6 +482,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
     _rate.text = r.rate.toString();
     _saleRate.text = r.saleRate.toString();
     _tax.text = r.tax.toString();
+    _remarks.text = r.remarks;
     _useInclusiveRates = false;
     _inclusiveRateScope = 'BOTH';
     _expDate = r.expiryDate ?? DateTime.now();
@@ -511,6 +517,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
     _rate.clear();
     _saleRate.clear();
     _tax.clear();
+    _remarks.clear();
     _selectedItemName = null;
     _selectedBrandItemId = null;
     _isStockable = true;
@@ -533,6 +540,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
       _rate.clear();
       _saleRate.clear();
       _tax.clear();
+      _remarks.clear();
       _unit.clear();
       _editIndex = null;
       _items.clear();
@@ -1023,11 +1031,18 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
                     setState(() {
                       _selectedDepartment = val;
                     });
-                    _addBtnFocus.requestFocus();
+                    _remarksFocus.requestFocus();
                   },
                 ),
               ),
             ),
+          _field(
+            _remarks,
+            'Remarks',
+            focusNode: _remarksFocus,
+            width: 260,
+            onSubmit: () => _addBtnFocus.requestFocus(),
+          ),
           FilledButton.icon(
             focusNode: _addBtnFocus,
             icon: const Icon(Icons.add),
@@ -1075,7 +1090,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
             if (!_isStockable) {
               _departmentFocus.requestFocus();
             } else {
-              _addBtnFocus.requestFocus();
+              _remarksFocus.requestFocus();
             }
           },
         ),
@@ -1115,6 +1130,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
                     const DataColumn(label: Text('Qty')),
                     const DataColumn(label: Text('Status')),
                     const DataColumn(label: Text('Amount')),
+                    const DataColumn(label: Text('Remarks')),
                     const DataColumn(label: Text('Vendor')),
                     if (showDepartment)
                       const DataColumn(label: Text('Department')),
@@ -1181,6 +1197,7 @@ class _ReceivingScreenState extends State<ReceivingScreen> {
                           ),
                         ),
                         DataCell(Text(r.amount.toString())),
+                        DataCell(Text(r.remarks)),
                         DataCell(Text(_selectedSupplier ?? '')),
                         if (showDepartment) DataCell(Text(depname)),
                         DataCell(Row(

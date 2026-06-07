@@ -2016,17 +2016,19 @@ class _ItemMasterScreenState extends State<ItemMasterScreen> {
           child: Scrollbar(
             controller: _tableVerticalController,
             thumbVisibility: true,
-            child: SingleChildScrollView(
-              controller: _tableVerticalController,
-              scrollDirection: Axis.vertical,
-              child: Scrollbar(
+            notificationPredicate: (notification) =>
+                notification.metrics.axis == Axis.vertical,
+            child: Scrollbar(
+              controller: _tableHorizontalController,
+              thumbVisibility: true,
+              notificationPredicate: (notification) =>
+                  notification.metrics.axis == Axis.horizontal,
+              child: SingleChildScrollView(
                 controller: _tableHorizontalController,
-                thumbVisibility: true,
-                notificationPredicate: (notification) =>
-                    notification.metrics.axis == Axis.horizontal,
+                scrollDirection: Axis.horizontal,
                 child: SingleChildScrollView(
-                  controller: _tableHorizontalController,
-                  scrollDirection: Axis.horizontal,
+                  controller: _tableVerticalController,
+                  scrollDirection: Axis.vertical,
                   child: Focus(
                     focusNode: _tableFocusNode,
                     onKeyEvent: _onTableKey,

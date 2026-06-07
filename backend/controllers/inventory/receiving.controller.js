@@ -127,7 +127,8 @@ exports.createReceiving = async (req, res) => {
                 tax_amount: taxAmount,
                 total_after_tax: amount + taxAmount,
                 department: i.department || null,
-                expiry_date: i.expiry_date
+                expiry_date: i.expiry_date,
+                remarks: i.remarks || null
             }, { transaction: t });
             await syncItemPricing({
                 req,
@@ -252,7 +253,7 @@ exports.updateReceivingItem = async (req, res) => {
     const t = await req.propertyDb.transaction();
 
     try {
-        const { qty, rate, tax, expiry_date, sale_rate } = req.body;
+        const { qty, rate, tax, expiry_date, sale_rate, remarks } = req.body;
 
         const item = await req.propertyDb.models.goods_receipt_items.findByPk(req.params.id);
 
@@ -271,7 +272,8 @@ exports.updateReceivingItem = async (req, res) => {
             gst_amount: (qty * rate) * tax / 100,
             tax_amount: (qty * rate) * tax / 100,
             total_after_tax: (qty * rate) + ((qty * rate) * tax / 100),
-            expiry_date
+            expiry_date,
+            remarks: remarks || null
         }, { transaction: t });
 
         await syncItemPricing({
@@ -382,7 +384,8 @@ exports.modifyReceiving = async (req, res) => {
                 amount: i.qty * i.rate,
                 gst_amount: (i.qty * i.rate) * i.tax / 100,
                 tax_amount: (i.qty * i.rate) * i.tax / 100,
-                total_after_tax: (i.qty * i.rate) + ((i.qty * i.rate) * i.tax / 100)
+                total_after_tax: (i.qty * i.rate) + ((i.qty * i.rate) * i.tax / 100),
+                remarks: i.remarks || null
             }, { transaction: t });
 
             await syncItemPricing({

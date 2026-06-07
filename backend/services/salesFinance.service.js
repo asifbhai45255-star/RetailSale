@@ -4,7 +4,12 @@ function roundAmount(value) {
     return Number((Number(value) || 0).toFixed(2));
 }
 
-function resolvePaymentStatus(totalPaid, netAmount) {
+function resolvePaymentStatus(totalPaid, netAmount, paymentMode = '') {
+    const mode = String(paymentMode || '').toUpperCase();
+    if (mode.includes('SUBSCRIPTION')) return 'PAID';
+    if (mode.includes('SCHEME')) return 'PAID';
+    if (mode.includes('DISCOUNT')) return 'PAID';
+    if (roundAmount(netAmount) <= 0) return 'PAID';
     if (roundAmount(totalPaid) <= 0) return 'UNPAID';
     if (roundAmount(totalPaid) >= roundAmount(netAmount)) return 'PAID';
     return 'PARTIAL';
@@ -45,7 +50,7 @@ async function refreshSaleOutstanding({
     const initialPaid = roundAmount(sale.initial_amount_paid ?? sale.amount_paid);
     const totalPaid = roundAmount(initialPaid + repaymentTotal);
     const balanceDue = Math.max(0, roundAmount(sale.net_amount) - totalPaid);
-    const paymentStatus = resolvePaymentStatus(totalPaid, sale.net_amount);
+    const paymentStatus = resolvePaymentStatus(totalPaid, sale.net_amount, sale.payment_mode);
 
     await sale.update({
         amount_paid: totalPaid,

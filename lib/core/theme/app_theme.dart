@@ -50,17 +50,26 @@ class AppTheme {
   static const famalthClassic = 'famalth_classic';
   static const famalthOcean = 'famalth_ocean';
   static const famalthForest = 'famalth_forest';
+  static const microsoftFluent = 'microsoft_fluent';
 
   static const availableThemes = <String, String>{
     famalthClassic: 'Famalth Classic',
     famalthOcean: 'Famalth Ocean',
     famalthForest: 'Famalth Forest',
+    microsoftFluent: 'Microsoft Fluent (Enterprise)',
   };
 
   static ThemeData getTheme(String key, {bool isDark = false}) {
     final Brightness brightness = isDark ? Brightness.dark : Brightness.light;
 
     switch (key) {
+      case microsoftFluent:
+        return _buildTheme(
+          seed: const Color(0xFF0078D4), // Microsoft Communication Blue
+          secondary: const Color(0xFF605E5C), // Fluent Charcoal/Gray
+          brightness: brightness,
+          radius: 4.0, // Fluent-style small rounded corners
+        );
       case famalthOcean:
         return _buildTheme(
           seed: const Color(0xFF0F4C81),
@@ -87,6 +96,7 @@ class AppTheme {
     required Color seed,
     required Color secondary,
     required Brightness brightness,
+    double radius = 10.0,
   }) {
     final bool isDark = brightness == Brightness.dark;
 
@@ -95,8 +105,6 @@ class AppTheme {
       secondary: secondary,
       brightness: brightness,
     );
-
-    const double radius = 10.0;
 
     return ThemeData(
       useMaterial3: true,

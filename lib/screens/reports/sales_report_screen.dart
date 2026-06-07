@@ -222,6 +222,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
             igstAmount: _taxAmountFor(item, 'IGST'),
             totalInvoiceValue: item.netAmount,
             saleDateTime: sale.saleDate,
+            paymentMode: sale.paymentMode,
+            discount: item.lineDiscount,
+            subTotal: item.amount,
           ),
         );
       }
@@ -287,6 +290,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           igstAmount: row.igstAmount,
           totalInvoiceValue: row.totalInvoiceValue,
           lineCount: 1,
+          paymentModes: {row.paymentMode},
+          discount: row.discount,
+          subTotal: row.subTotal,
         );
       } else {
         grouped[key] = current.copyWith(
@@ -299,6 +305,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           igstAmount: current.igstAmount + row.igstAmount,
           totalInvoiceValue: current.totalInvoiceValue + row.totalInvoiceValue,
           lineCount: current.lineCount + 1,
+          paymentModes: Set<String>.from(current.paymentModes)..add(row.paymentMode),
+          discount: current.discount + row.discount,
+          subTotal: current.subTotal + row.subTotal,
         );
       }
     }
@@ -319,7 +328,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
   int get _totalPages =>
       _rows.isEmpty ? 1 : ((_rows.length - 1) ~/ _rowsPerPage) + 1;
 
-  double get _taxSaleTotal => ctrl.list.fold<double>(
+  double get _taxSaleTotal => _billWiseSales.fold<double>(
       0,
       (sum, sale) =>
           sum +
@@ -329,7 +338,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                 itemSum + (_isTaxedItem(item) ? item.netAmount : 0),
           ));
 
-  double get _nonTaxSaleTotal => ctrl.list.fold<double>(
+  double get _nonTaxSaleTotal => _billWiseSales.fold<double>(
       0,
       (sum, sale) =>
           sum +
@@ -339,17 +348,21 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                 itemSum + (_isTaxedItem(item) ? 0 : item.netAmount),
           ));
   double get _headerTaxableTotal =>
-      ctrl.list.fold<double>(0, (sum, sale) => sum + _taxableSaleValue(sale));
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + _taxableSaleValue(sale));
   double get _headerCgstTotal =>
-      ctrl.list.fold<double>(0, (sum, sale) => sum + sale.cgstAmount);
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.cgstAmount);
   double get _headerSgstTotal =>
-      ctrl.list.fold<double>(0, (sum, sale) => sum + sale.sgstAmount);
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.sgstAmount);
   double get _headerIgstTotal =>
-      ctrl.list.fold<double>(0, (sum, sale) => sum + sale.igstAmount);
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.igstAmount);
   double get _headerTaxTotal =>
-      ctrl.list.fold<double>(0, (sum, sale) => sum + sale.totalTax);
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.totalTax);
   double get _headerRevenueTotal =>
-      ctrl.list.fold<double>(0, (sum, sale) => sum + sale.netAmount);
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.netAmount);
+  double get _headerDiscountTotal =>
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.totalDiscount);
+  double get _headerChargeTotal =>
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.chargeTotal);
 
   List<SalesReport> get _billWiseSales {
     final query = _itemSearchCtrl.text.trim().toLowerCase();
@@ -392,6 +405,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
       _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.totalTax);
   double get _billWiseDiscountTotal =>
       _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.totalDiscount);
+  double get _billWiseSubTotalTotal =>
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.subTotal);
+  double get _billWiseChargeTotalTotal =>
+      _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.chargeTotal);
   double get _billWiseQtyTotal =>
       _billWiseSales.fold<double>(0, (sum, sale) => sum + sale.totalQty);
   double get _billWiseTaxableSaleTotal => _billWiseSales.fold<double>(
@@ -421,6 +438,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
       _groupedRows.fold<double>(0, (sum, row) => sum + row.lineCount);
   double get _itemWiseQtyTotal =>
       _groupedRows.fold<double>(0, (sum, row) => sum + row.quantity);
+  double get _itemWiseSubTotalTotal =>
+      _groupedRows.fold<double>(0, (sum, row) => sum + row.subTotal);
+  double get _itemWiseDiscountTotal =>
+      _groupedRows.fold<double>(0, (sum, row) => sum + row.discount);
   double get _itemWiseTaxableTotal =>
       _groupedRows.fold<double>(0, (sum, row) => sum + row.taxableValue);
   double get _itemWiseCgstTotal =>
@@ -575,6 +596,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           igstAmount: _saleIgstAmount(sale),
           taxAmount: sale.totalTax,
           netAmount: sale.netAmount,
+          paymentModes: {sale.paymentMode},
+          subTotal: sale.subTotal,
+          discount: sale.totalDiscount,
+          chargeTotal: sale.chargeTotal,
         );
       } else {
         grouped[key] = current.copyWith(
@@ -584,6 +609,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           igstAmount: current.igstAmount + _saleIgstAmount(sale),
           taxAmount: current.taxAmount + sale.totalTax,
           netAmount: current.netAmount + sale.netAmount,
+          paymentModes: Set<String>.from(current.paymentModes)..add(sale.paymentMode),
+          subTotal: current.subTotal + sale.subTotal,
+          discount: current.discount + sale.totalDiscount,
+          chargeTotal: current.chargeTotal + sale.chargeTotal,
         );
       }
     }
@@ -598,6 +627,12 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
       _dateWiseSalesRows.fold<double>(0, (sum, row) => sum + row.qty);
   double get _dateWiseTaxTotal =>
       _dateWiseSalesRows.fold<double>(0, (sum, row) => sum + row.taxAmount);
+  double get _dateWiseSubTotalTotal =>
+      _dateWiseSalesRows.fold<double>(0, (sum, row) => sum + row.subTotal);
+  double get _dateWiseDiscountTotal =>
+      _dateWiseSalesRows.fold<double>(0, (sum, row) => sum + row.discount);
+  double get _dateWiseChargeTotalTotal =>
+      _dateWiseSalesRows.fold<double>(0, (sum, row) => sum + row.chargeTotal);
   double get _dateWiseNetTotal =>
       _dateWiseSalesRows.fold<double>(0, (sum, row) => sum + row.netAmount);
 
@@ -616,15 +651,21 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
   }
 
   _GstSummary get _summary {
-    return ctrl.list.fold(
+    return _billWiseSales.fold(
       const _GstSummary(),
-      (sum, sale) => _GstSummary(
-        taxableValue: sum.taxableValue + _taxableSaleValue(sale),
-        cgstAmount: sum.cgstAmount + sale.cgstAmount,
-        sgstAmount: sum.sgstAmount + sale.sgstAmount,
-        igstAmount: sum.igstAmount + sale.igstAmount,
-        totalRevenue: sum.totalRevenue + sale.netAmount,
-      ),
+      (sum, sale) {
+        final itemDiscounts = sale.items.fold<double>(0, (isum, item) => isum + item.lineDiscount);
+        final billDiscount = sale.totalDiscount - itemDiscounts;
+        return _GstSummary(
+          taxableValue: sum.taxableValue + _taxableSaleValue(sale),
+          cgstAmount: sum.cgstAmount + sale.cgstAmount,
+          sgstAmount: sum.sgstAmount + sale.sgstAmount,
+          igstAmount: sum.igstAmount + sale.igstAmount,
+          totalRevenue: sum.totalRevenue + sale.netAmount,
+          billDiscount: sum.billDiscount + billDiscount,
+          chargeTotal: sum.chargeTotal + sale.chargeTotal,
+        );
+      },
     );
   }
 
@@ -739,7 +780,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         [
           'Date',
           'Bill No',
-          'Amount',
+          'Payment',
+          'Subtotal',
+          'Discount',
+          'Charges',
           ...taxRates.expand(
             (rate) => [
               '${_formatTaxPercent(rate)}% Sale',
@@ -748,6 +792,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           ),
           'IGST',
           'Tax',
+          'Net Amount',
         ].map(exc.TextCellValue.new).toList(),
       );
       for (final sale in _billWiseSales) {
@@ -755,7 +800,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         sheet.appendRow([
           exc.TextCellValue(DateFormat('dd-MM-yyyy').format(sale.saleDate)),
           exc.TextCellValue(_maskedBillNo(sale.saleNo)),
-          exc.DoubleCellValue(sale.netAmount),
+          exc.TextCellValue(sale.paymentMode),
+          exc.DoubleCellValue(sale.subTotal),
+          exc.DoubleCellValue(sale.totalDiscount),
+          exc.DoubleCellValue(sale.chargeTotal),
           ...taxRates.expand(
             (rate) => [
               exc.DoubleCellValue(_bandTaxable(bands, rate)),
@@ -764,12 +812,16 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           ),
           exc.DoubleCellValue(_saleIgstAmount(sale)),
           exc.DoubleCellValue(sale.totalTax),
+          exc.DoubleCellValue(sale.netAmount),
         ]);
       }
       sheet.appendRow([
         exc.TextCellValue('TOTAL'),
         exc.TextCellValue(''),
-        exc.DoubleCellValue(_billWiseNetTotal),
+        exc.TextCellValue(''),
+        exc.DoubleCellValue(_billWiseSubTotalTotal),
+        exc.DoubleCellValue(_billWiseDiscountTotal),
+        exc.DoubleCellValue(_billWiseChargeTotalTotal),
         ...taxRates.expand(
           (rate) => [
             exc.DoubleCellValue(_billWiseTaxBandsTotal[rate]?.taxableValue ?? 0),
@@ -779,6 +831,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         ),
         exc.DoubleCellValue(_billWiseIgstTotal),
         exc.DoubleCellValue(_billWiseTaxTotal),
+        exc.DoubleCellValue(_billWiseNetTotal),
       ]);
     } else if (_reportTabIndex == 2) {
       sheet.appendRow(
@@ -788,6 +841,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           'Rows',
           'Qty',
           'Unit',
+          'Payment',
+          'Subtotal',
+          'Discount',
           'Taxed Sales',
           'Non-Tax Sales',
           'Taxable Value',
@@ -804,6 +860,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           exc.IntCellValue(row.lineCount),
           exc.DoubleCellValue(row.quantity),
           exc.TextCellValue(row.unit),
+          exc.TextCellValue(row.paymentModes.join(', ')),
+          exc.DoubleCellValue(row.subTotal),
+          exc.DoubleCellValue(row.discount),
           exc.DoubleCellValue(_itemWiseTaxSaleValue(row)),
           exc.DoubleCellValue(_itemWiseNonTaxSaleValue(row)),
           exc.DoubleCellValue(row.taxableValue),
@@ -819,6 +878,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         exc.DoubleCellValue(_itemWiseLineCountTotal),
         exc.DoubleCellValue(_itemWiseQtyTotal),
         exc.TextCellValue(''),
+        exc.TextCellValue(''),
+        exc.DoubleCellValue(_itemWiseSubTotalTotal),
+        exc.DoubleCellValue(_itemWiseDiscountTotal),
         exc.DoubleCellValue(_itemWiseTaxableSaleTotal),
         exc.DoubleCellValue(_itemWiseNonTaxableSaleTotal),
         exc.DoubleCellValue(_itemWiseTaxableTotal),
@@ -927,6 +989,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           'Date',
           'Bills',
           'Qty',
+          'Payment',
+          'Subtotal',
+          'Discount',
+          'Charges',
           ...taxRates.expand(
             (rate) => [
               '${_formatTaxPercent(rate)}% Sale',
@@ -944,6 +1010,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           exc.TextCellValue(DateFormat('dd-MM-yyyy').format(row.date)),
           exc.IntCellValue(row.bills),
           exc.DoubleCellValue(row.qty),
+          exc.TextCellValue(row.paymentModes.join(', ')),
+          exc.DoubleCellValue(row.subTotal),
+          exc.DoubleCellValue(row.discount),
+          exc.DoubleCellValue(row.chargeTotal),
           ...taxRates.expand(
             (rate) => [
               exc.DoubleCellValue(_bandTaxable(bands, rate)),
@@ -959,6 +1029,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         exc.TextCellValue('TOTAL'),
         exc.IntCellValue(_dateWiseBillsTotal),
         exc.DoubleCellValue(_dateWiseQtyTotal),
+        exc.TextCellValue(''),
+        exc.DoubleCellValue(_dateWiseSubTotalTotal),
+        exc.DoubleCellValue(_dateWiseDiscountTotal),
+        exc.DoubleCellValue(_dateWiseChargeTotalTotal),
         ...taxRates.expand(
           (rate) => [
             exc.DoubleCellValue(_dateWiseTaxBandsTotal[rate]?.taxableValue ?? 0),
@@ -1005,7 +1079,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
       1 => [
           'Date',
           'Bill No',
-          'Amount',
+          'Payment',
+          'Subtotal',
+          'Discount',
+          'Charges',
           ...taxRates.expand(
             (rate) => [
               '${_formatTaxPercent(rate)}% Sale',
@@ -1013,7 +1090,8 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
             ],
           ),
           'IGST',
-          'Tax'
+          'Tax',
+          'Net Amount'
         ],
       2 => [
           'Label',
@@ -1021,6 +1099,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           'Rows',
           'Qty',
           'Unit',
+          'Payment',
+          'Subtotal',
+          'Discount',
           'Taxed Sales',
           'Non-Tax Sales',
           'Taxable',
@@ -1033,6 +1114,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           'Date',
           'Bills',
           'Qty',
+          'Payment',
+          'Subtotal',
+          'Discount',
+          'Charges',
           ...taxRates.expand(
             (rate) => [
               '${_formatTaxPercent(rate)}% Sale',
@@ -1076,7 +1161,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
             return [
               DateFormat('dd-MM-yyyy').format(sale.saleDate),
               _maskedBillNo(sale.saleNo),
-              _money(sale.netAmount),
+              sale.paymentMode,
+              _money(sale.subTotal),
+              _money(sale.totalDiscount),
+              _money(sale.chargeTotal),
               ...taxRates.expand(
                 (rate) => [
                   _money(_bandTaxable(bands, rate)),
@@ -1085,13 +1173,17 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
               ),
               _money(_saleIgstAmount(sale)),
               _money(sale.totalTax),
+              _money(sale.netAmount),
             ];
           },
         ).toList()
           ..add([
             'TOTAL',
             '',
-            _money(_billWiseNetTotal),
+            '',
+            _money(_billWiseSubTotalTotal),
+            _money(_billWiseDiscountTotal),
+            _money(_billWiseChargeTotalTotal),
             ...taxRates.expand(
               (rate) => [
                 _money(_billWiseTaxBandsTotal[rate]?.taxableValue ?? 0),
@@ -1100,6 +1192,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
             ),
             _money(_billWiseIgstTotal),
             _money(_billWiseTaxTotal),
+            _money(_billWiseNetTotal),
           ]),
       2 => _groupedRows
           .map(
@@ -1109,6 +1202,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
               '${row.lineCount}',
               _formatQty(row.quantity),
               row.unit,
+              row.paymentModes.join(', '),
+              _money(row.subTotal),
+              _money(row.discount),
               _money(_itemWiseTaxSaleValue(row)),
               _money(_itemWiseNonTaxSaleValue(row)),
               _money(row.taxableValue),
@@ -1125,6 +1221,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           _formatQty(_itemWiseLineCountTotal),
           _formatQty(_itemWiseQtyTotal),
           '',
+          '',
+          _money(_itemWiseSubTotalTotal),
+          _money(_itemWiseDiscountTotal),
           _money(_itemWiseTaxableSaleTotal),
           _money(_itemWiseNonTaxableSaleTotal),
           _money(_itemWiseTaxableTotal),
@@ -1139,6 +1238,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
               DateFormat('dd-MM-yyyy').format(row.date),
               '${row.bills}',
               _formatQty(row.qty),
+              row.paymentModes.join(', '),
+              _money(row.subTotal),
+              _money(row.discount),
+              _money(row.chargeTotal),
               ...taxRates.expand(
                 (rate) => [
                   _money(_bandTaxable(row.taxBands, rate)),
@@ -1155,6 +1258,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
           'TOTAL',
           '$_dateWiseBillsTotal',
           _formatQty(_dateWiseQtyTotal),
+          '',
+          _money(_dateWiseSubTotalTotal),
+          _money(_dateWiseDiscountTotal),
+          _money(_dateWiseChargeTotalTotal),
           ...taxRates.expand(
             (rate) => [
               _money(_dateWiseTaxBandsTotal[rate]?.taxableValue ?? 0),
@@ -1295,7 +1402,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                       _pdfSummaryBlock('Total CGST', summary.cgstAmount),
                       _pdfSummaryBlock('Total SGST', summary.sgstAmount),
                       _pdfSummaryBlock('Non-Tax Sales', _nonTaxSaleTotal),
-                      _pdfSummaryBlock('Net Sales', summary.totalRevenue),
+                      _pdfSummaryBlock('Subscription Sale', ctrl.summary.subscriptionRealized),
+                      _pdfSummaryBlock('Charges', summary.chargeTotal),
+                      _pdfSummaryBlock('Net Sales', summary.totalRevenue + ctrl.summary.subscriptionRealized),
                     ],
                   ),
                 ),
@@ -1367,7 +1476,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
-                  'Formula: Taxable Value + GST = Tax-included sales, and Net Sales = Taxed Sales After GST + Non-Tax Sales.',
+                  'Formula: Net Sales = Taxable Value + CGST + SGST + IGST + Non-Tax Sales + Subscription Sale - Discount + Charges.',
                   style: TextStyle(
                     color: Color(0xFF64748B),
                     fontSize: 12,
@@ -1661,9 +1770,25 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         SizedBox(
           width: 240,
           child: _metricCard(
-            'Net Sales',
+            'Net Sales (Standard)',
             _headerRevenueTotal,
             const Color(0xFFEA580C),
+          ),
+        ),
+        SizedBox(
+          width: 240,
+          child: _metricCard(
+            'Subscription Realized',
+            ctrl.summary.subscriptionRealized,
+            const Color(0xFF0EA5E9),
+          ),
+        ),
+        SizedBox(
+          width: 240,
+          child: _metricCard(
+            'Total Revenue',
+            _headerRevenueTotal + ctrl.summary.subscriptionRealized,
+            const Color(0xFF16A34A),
           ),
         ),
         SizedBox(
@@ -2167,7 +2292,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                 columns: [
                                   const DataColumn(label: Text('Date')),
                                   const DataColumn(label: Text('Bill No')),
-                                  const DataColumn(label: Text('Amount')),
+                                  const DataColumn(label: Text('Payment')),
+                                  const DataColumn(label: Text('Subtotal')),
+                                  const DataColumn(label: Text('Discount')),
+                                  const DataColumn(label: Text('Charges')),
                                   ...taxRates.expand(
                                     (rate) => [
                                       DataColumn(
@@ -2181,6 +2309,7 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                   ),
                                   const DataColumn(label: Text('IGST')),
                                   const DataColumn(label: Text('Tax')),
+                                  const DataColumn(label: Text('Net Amount')),
                                 ],
                                 rows: [
                                   ...rows.map(
@@ -2198,7 +2327,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                         ),
                                         DataCell(
                                             Text(_maskedBillNo(sale.saleNo))),
-                                        DataCell(Text(_money(sale.netAmount))),
+                                        DataCell(Text(sale.paymentMode)),
+                                        DataCell(Text(_money(sale.subTotal))),
+                                        DataCell(Text(_money(sale.totalDiscount))),
+                                        DataCell(Text(_money(sale.chargeTotal))),
                                         ...taxRates.expand(
                                           (rate) => [
                                             DataCell(Text(_money(
@@ -2213,6 +2345,14 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                         DataCell(Text(
                                             _money(_saleIgstAmount(sale)))),
                                         DataCell(Text(_money(sale.totalTax))),
+                                        DataCell(
+                                          Text(
+                                            _money(sale.netAmount),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -2229,9 +2369,26 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                         ),
                                       ),
                                       const DataCell(Text('')),
+                                      const DataCell(Text('')),
                                       DataCell(
                                         Text(
-                                          _money(_billWiseNetTotal),
+                                          _money(_billWiseSubTotalTotal),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          _money(_billWiseDiscountTotal),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          _money(_billWiseChargeTotalTotal),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                           ),
@@ -2274,6 +2431,15 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                           _money(_billWiseTaxTotal),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          _money(_billWiseNetTotal),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF16A34A),
                                           ),
                                         ),
                                       ),
@@ -2347,6 +2513,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                 DataColumn(label: Text('Rows')),
                                 DataColumn(label: Text('Qty')),
                                 DataColumn(label: Text('Unit')),
+                                DataColumn(label: Text('Payment')),
+                                DataColumn(label: Text('Subtotal')),
+                                DataColumn(label: Text('Discount')),
                                 DataColumn(label: Text('Taxed Sales')),
                                 DataColumn(label: Text('Non-Tax Sales')),
                                 DataColumn(label: Text('Taxable Value')),
@@ -2373,6 +2542,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                       DataCell(Text('${row.lineCount}')),
                                       DataCell(Text(_formatQty(row.quantity))),
                                       DataCell(Text(row.unit)),
+                                      DataCell(Text(row.paymentModes.join(', '))),
+                                      DataCell(Text(_money(row.subTotal))),
+                                      DataCell(Text(_money(row.discount))),
                                       DataCell(
                                         Text(
                                             _money(_itemWiseTaxSaleValue(row))),
@@ -2422,6 +2594,23 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                       ),
                                     ),
                                     const DataCell(Text('')),
+                                    const DataCell(Text('')),
+                                    DataCell(
+                                      Text(
+                                        _money(_itemWiseSubTotalTotal),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        _money(_itemWiseDiscountTotal),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
                                     DataCell(
                                       Text(
                                         _money(_itemWiseTaxableSaleTotal),
@@ -2542,6 +2731,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                               const DataColumn(label: Text('Date')),
                               const DataColumn(label: Text('Bills')),
                               const DataColumn(label: Text('Qty')),
+                              const DataColumn(label: Text('Payment')),
+                              const DataColumn(label: Text('Subtotal')),
+                              const DataColumn(label: Text('Discount')),
+                              const DataColumn(label: Text('Charges')),
                               ...taxRates.expand(
                                 (rate) => [
                                   DataColumn(
@@ -2567,6 +2760,10 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                     ),
                                     DataCell(Text('${row.bills}')),
                                     DataCell(Text(_formatQty(row.qty))),
+                                    DataCell(Text(row.paymentModes.join(', '))),
+                                    DataCell(Text(_money(row.subTotal))),
+                                    DataCell(Text(_money(row.discount))),
+                                    DataCell(Text(_money(row.chargeTotal))),
                                     ...taxRates.expand(
                                       (rate) => [
                                         DataCell(Text(_money(
@@ -2607,6 +2804,28 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w800)),
                                   ),
+                                  const DataCell(Text('')),
+                                  DataCell(
+                                    Text(
+                                      _money(_dateWiseSubTotalTotal),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      _money(_dateWiseDiscountTotal),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      _money(_dateWiseChargeTotalTotal),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
                                   ...taxRates.expand(
                                     (rate) => [
                                       DataCell(
@@ -2645,7 +2864,8 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
                                   DataCell(
                                     Text(_money(_dateWiseNetTotal),
                                         style: const TextStyle(
-                                            fontWeight: FontWeight.w800)),
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF16A34A))),
                                   ),
                                 ],
                               ),
@@ -2998,6 +3218,9 @@ class _GstSalesRow {
   final double igstAmount;
   final double totalInvoiceValue;
   final DateTime saleDateTime;
+  final String paymentMode;
+  final double discount;
+  final double subTotal;
 
   const _GstSalesRow({
     required this.invoiceDate,
@@ -3019,6 +3242,9 @@ class _GstSalesRow {
     required this.igstAmount,
     required this.totalInvoiceValue,
     required this.saleDateTime,
+    required this.paymentMode,
+    required this.discount,
+    required this.subTotal,
   });
 }
 
@@ -3037,6 +3263,9 @@ class _GroupedSalesRow {
   final double sgstAmount;
   final double igstAmount;
   final double totalInvoiceValue;
+  final Set<String> paymentModes;
+  final double discount;
+  final double subTotal;
 
   const _GroupedSalesRow({
     required this.label,
@@ -3053,6 +3282,9 @@ class _GroupedSalesRow {
     required this.sgstAmount,
     required this.igstAmount,
     required this.totalInvoiceValue,
+    required this.paymentModes,
+    required this.discount,
+    required this.subTotal,
   });
 
   _GroupedSalesRow copyWith({
@@ -3065,6 +3297,9 @@ class _GroupedSalesRow {
     double? sgstAmount,
     double? igstAmount,
     double? totalInvoiceValue,
+    Set<String>? paymentModes,
+    double? discount,
+    double? subTotal,
   }) {
     return _GroupedSalesRow(
       label: label,
@@ -3081,6 +3316,9 @@ class _GroupedSalesRow {
       sgstAmount: sgstAmount ?? this.sgstAmount,
       igstAmount: igstAmount ?? this.igstAmount,
       totalInvoiceValue: totalInvoiceValue ?? this.totalInvoiceValue,
+      paymentModes: paymentModes ?? this.paymentModes,
+      discount: discount ?? this.discount,
+      subTotal: subTotal ?? this.subTotal,
     );
   }
 }
@@ -3103,6 +3341,10 @@ class _DateWiseSalesRow {
   final double igstAmount;
   final double taxAmount;
   final double netAmount;
+  final Set<String> paymentModes;
+  final double subTotal;
+  final double discount;
+  final double chargeTotal;
 
   const _DateWiseSalesRow({
     required this.date,
@@ -3112,6 +3354,10 @@ class _DateWiseSalesRow {
     required this.igstAmount,
     required this.taxAmount,
     required this.netAmount,
+    required this.paymentModes,
+    required this.subTotal,
+    required this.discount,
+    required this.chargeTotal,
   });
 
   _DateWiseSalesRow copyWith({
@@ -3121,6 +3367,10 @@ class _DateWiseSalesRow {
     double? igstAmount,
     double? taxAmount,
     double? netAmount,
+    Set<String>? paymentModes,
+    double? subTotal,
+    double? discount,
+    double? chargeTotal,
   }) {
     return _DateWiseSalesRow(
       date: date,
@@ -3130,6 +3380,10 @@ class _DateWiseSalesRow {
       igstAmount: igstAmount ?? this.igstAmount,
       taxAmount: taxAmount ?? this.taxAmount,
       netAmount: netAmount ?? this.netAmount,
+      paymentModes: paymentModes ?? this.paymentModes,
+      subTotal: subTotal ?? this.subTotal,
+      discount: discount ?? this.discount,
+      chargeTotal: chargeTotal ?? this.chargeTotal,
     );
   }
 }
@@ -3212,6 +3466,8 @@ class _GstSummary {
   final double sgstAmount;
   final double igstAmount;
   final double totalRevenue;
+  final double billDiscount;
+  final double chargeTotal;
 
   const _GstSummary({
     this.taxableValue = 0,
@@ -3219,6 +3475,8 @@ class _GstSummary {
     this.sgstAmount = 0,
     this.igstAmount = 0,
     this.totalRevenue = 0,
+    this.billDiscount = 0,
+    this.chargeTotal = 0,
   });
 }
 

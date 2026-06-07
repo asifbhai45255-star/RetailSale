@@ -492,6 +492,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ], constraints),
                 buildTabBody([
                       _section('Appearance', [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Card(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                shape: RoundedRectangleBorder(
+                  side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.dashboard_customize_outlined, 
+                           color: Theme.of(context).colorScheme.primary, size: 28),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Microsoft Fluent Enterprise Preset',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Instantly apply a clean, compact, professional layout with rectangular borders, optimized for enterprise-grade productivity.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      FilledButton(
+                        onPressed: () async {
+                          await themeCtrl.updateTheme(AppTheme.microsoftFluent);
+                          await uiPrefsCtrl.updateTouchMode(false);
+                          await uiPrefsCtrl.updateTextfieldSize('compact');
+                          await uiPrefsCtrl.updateTextfieldBorderStyle('rectangular');
+                          await uiPrefsCtrl.updateCardColorStyle('white');
+                          
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Microsoft Fluent Enterprise theme applied!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Apply Preset'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             _switchTile(
               'Touch Screen Mode',
               'Larger tap targets and softer spacing for touch devices',
@@ -577,6 +639,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (value) {
                   if (value != null) {
                     uiPrefsCtrl.updateTextfieldSize(value);
+                  }
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: DropdownButtonFormField<String>(
+                initialValue: uiPrefsCtrl.textfieldBorderStyle,
+                decoration: const InputDecoration(
+                  labelText: 'Global Textfield Border Style',
+                  helperText: 'Choose the visual style for all input text fields',
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'rounded',
+                    child: Text('Rounded Borders'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'rectangular',
+                    child: Text('Rectangular Borders'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'underlined',
+                    child: Text('Underlined Only'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'none',
+                    child: Text('No Borders (Borderless)'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    uiPrefsCtrl.updateTextfieldBorderStyle(value);
                   }
                 },
               ),

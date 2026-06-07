@@ -83,7 +83,8 @@ exports.getInventoryDashboard = async (outletId, db) => {
     customerOutstandingResult,
     supplierOutstandingResult,
     salesRows,
-    cashLedgerRows
+    cashLedgerRows,
+    subscriptionConsumptionResult
   ] = await Promise.all([
 
     // KPI
@@ -285,10 +286,20 @@ FROM item_stock;
         transaction_type,
         amount_in,
         amount_out,
-        adjustment_amount
+        adjustment_amount,
+        reference_type
       FROM cash_ledger
       WHERE outlet_id = :outletId
       ORDER BY txn_date ASC, id ASC
+    `, { replacements: { outletId }, type: QueryTypes.SELECT }),
+    db.query(`
+      SELECT
+        txn_date,
+        covered_qty,
+        covered_amount
+      FROM milk_subscription_consumptions
+      WHERE outlet_id = :outletId
+        AND status != 'CANCELLED'
     `, { replacements: { outletId }, type: QueryTypes.SELECT })
   ]);
 
@@ -364,6 +375,10 @@ FROM item_stock;
   let grandLoss = 0;
   let grandRevenue = 0;
   let cogsTotal = 0;
+  let todayDiscount = 0;
+  let todayRevenue = 0;
+  let todayCollection = 0;
+  let todayCogs = 0;
 
   for (const sale of sales) {
     const saleDate = normalizeDate(sale.sale_date);
@@ -376,6 +391,9 @@ FROM item_stock;
       const lineNet = toNumber(item.net_amount);
       const itemCost = toNumber(item.item?.rate) * qty;
       cogsTotal = roundAmount(cogsTotal + itemCost);
+      if (fitsRange(saleDate, currentDayStart, currentDayEnd)) {
+        todayCogs = roundAmount(todayCogs + itemCost);
+      }
       const lineProfit = lineNet - itemCost;
       saleProfit += Math.max(lineProfit, 0);
       saleLoss += lineProfit < 0 ? Math.abs(lineProfit) : 0;
@@ -404,11 +422,37 @@ FROM item_stock;
     grandRevenue = roundAmount(grandRevenue + saleRevenue);
     grandProfit = roundAmount(grandProfit + saleProfit);
     grandLoss = roundAmount(grandLoss + saleLoss);
+    if (fitsRange(saleDate, currentDayStart, currentDayEnd)) {
+      todayDiscount = roundAmount(todayDiscount + toNumber(sale.total_discount));
+      todayRevenue = roundAmount(todayRevenue + saleRevenue);
+    }
 
     addPeriod('day', saleDate, saleRevenue, saleProfit, saleLoss);
     addPeriod('week', saleDate, saleRevenue, saleProfit, saleLoss);
     addPeriod('month', saleDate, saleRevenue, saleProfit, saleLoss);
     addPeriod('year', saleDate, saleRevenue, saleProfit, saleLoss);
+  }
+
+  let todaySubscriptionQty = 0;
+  let todaySubscriptionAmount = 0;
+
+  for (const c of subscriptionConsumptionResult || []) {
+    const cDate = normalizeDate(c.txn_date);
+    const cAmount = toNumber(c.covered_amount);
+    const cQty = toNumber(c.covered_qty);
+
+    if (fitsRange(cDate, currentDayStart, currentDayEnd)) {
+      todaySubscriptionAmount = roundAmount(todaySubscriptionAmount + cAmount);
+      todaySubscriptionQty = roundAmount(todaySubscriptionQty + cQty);
+      todayRevenue = roundAmount(todayRevenue + cAmount);
+    }
+
+    grandRevenue = roundAmount(grandRevenue + cAmount);
+
+    addPeriod('day', cDate, cAmount, 0, 0);
+    addPeriod('week', cDate, cAmount, 0, 0);
+    addPeriod('month', cDate, cAmount, 0, 0);
+    addPeriod('year', cDate, cAmount, 0, 0);
   }
 
   let cashInTotal = 0;
@@ -444,6 +488,12 @@ FROM item_stock;
     const inAmount = toNumber(entry.amount_in);
     const outAmount = toNumber(entry.amount_out);
     const netAmount = roundAmount(inAmount - outAmount);
+
+    if (fitsRange(entryDate, currentDayStart, currentDayEnd)) {
+      if (type !== 'OPENING_DEPOSIT' && inAmount > 0) {
+        todayCollection = roundAmount(todayCollection + inAmount);
+      }
+    }
 
     if (type === 'OPENING_DEPOSIT') {
       openingDepositTotal = roundAmount(openingDepositTotal + inAmount - outAmount);
@@ -494,6 +544,9 @@ FROM item_stock;
   const grossProfitValue = roundAmount(grandRevenue - cogsTotal);
   const grossProfit = grossProfitValue > 0 ? grossProfitValue : 0;
   const grossLoss = grossProfitValue < 0 ? Math.abs(grossProfitValue) : 0;
+  const todayGrossProfitValue = roundAmount(todayRevenue - todayCogs);
+  const todayGrossProfit = todayGrossProfitValue > 0 ? todayGrossProfitValue : 0;
+  const todayGrossLoss = todayGrossProfitValue < 0 ? Math.abs(todayGrossProfitValue) : 0;
   const grossMarginPercent = grandRevenue > 0 ? roundAmount((grossProfitValue / grandRevenue) * 100) : 0;
   const customerOutstanding = roundAmount(customerOutstandingResult?.[0]?.total_outstanding || 0);
   const supplierOutstanding = roundAmount(supplierOutstandingResult?.[0]?.total_outstanding || 0);
@@ -527,6 +580,15 @@ FROM item_stock;
     }
   };
 
+  let netSubscription = 0;
+  for (const entry of cashLedgerRows || []) {
+    const inAmount = toNumber(entry.amount_in);
+    const refType = String(entry.reference_type || '').toUpperCase();
+    if (refType === 'SUBSCRIPTION') {
+      netSubscription = roundAmount(netSubscription + inAmount);
+    }
+  }
+
   return {
             kpis: {
       todayIn: Number(kpis?.[0]?.today_in || 0),
@@ -547,7 +609,17 @@ FROM item_stock;
       cashOutTotal,
       cashNetTotal,
       openingDepositTotal,
-      netOperatingProfit: roundAmount(grossProfit - expenseTotal)
+      netOperatingProfit: roundAmount(grossProfit - expenseTotal),
+      todaySubscriptionQty: todaySubscriptionQty,
+      todaySubscriptionAmount: todaySubscriptionAmount,
+      todayDiscount: todayDiscount,
+      todayRevenue: todayRevenue,
+      todayCollection: todayCollection,
+      todayCogs: todayCogs,
+      todayGrossProfit: todayGrossProfit,
+      todayGrossLoss: todayGrossLoss,
+      netSubscription,
+      netDebit: cashOutTotal
     },
 
     lowStockItems: lowStockItems.map(i => i.item_name),

@@ -409,6 +409,7 @@ class _PurchaseOrderModifyScreenState extends State<PurchaseOrderModifyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final selectedPoValue = _singleMatchOrNull(
       ctrl.purchaseOrders.map((e) => e['id'] as int?),
       selectedPoId,
@@ -421,222 +422,256 @@ class _PurchaseOrderModifyScreenState extends State<PurchaseOrderModifyScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       appBar: AppBar(
-        elevation: 0,
         title: const Text("Modify Purchase Order"),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            /// SECTION TITLE
-            const Text(
-              "Purchase Order Details",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
             /// ================= FILTER BAR =================
             Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border.all(color: Colors.grey.shade200),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: scheme.outlineVariant),
               ),
-              child: Row(
-                children: [
-                  /// DATE
-                  SizedBox(
-                    width: 220,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(
-                        DateFormat('dd-MMM-yyyy').format(selectedDate),
-                      ),
-                      onPressed: () async {
-                        final d = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now(),
-                        );
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 16,
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  children: [
+                    /// DATE
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Date",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 160,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.calendar_today, size: 14),
+                            label: Text(
+                              DateFormat('dd-MMM-yyyy').format(selectedDate),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            onPressed: () async {
+                              final d = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
 
-                        if (d != null) {
-                          selectedDate = d;
-                          await _loadPOs();
-                        }
-                      },
+                              if (d != null) {
+                                selectedDate = d;
+                                await _loadPOs();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
 
-                  const SizedBox(width: 16),
-
-                  /// PO
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      key: ValueKey('po-$selectedPoId'),
-                      initialValue: selectedPoValue,
-                      decoration: const InputDecoration(
-                        labelText: "Purchase Order",
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: ctrl.purchaseOrders
-                          .map((e) => DropdownMenuItem<int>(
-                                value: e['id'],
-                                child: Text(e['po_no']),
-                              ))
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) _loadDetails(v);
-                      },
+                    /// PO
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Purchase Order",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 220,
+                          child: DropdownButtonFormField<int>(
+                            key: ValueKey('po-$selectedPoId'),
+                            initialValue: selectedPoValue,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                            items: ctrl.purchaseOrders
+                                .map((e) => DropdownMenuItem<int>(
+                                      value: e['id'],
+                                      child: Text(e['po_no'], style: const TextStyle(fontSize: 13)),
+                                    ))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) _loadDetails(v);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
 
-                  const SizedBox(width: 16),
-
-                  /// SUPPLIER
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      key: ValueKey('po-supplier-$selectedPoId-$supplierId'),
-                      initialValue: selectedSupplierValue,
-                      decoration: const InputDecoration(
-                        labelText: "Supplier",
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: supplierCtrl.list
-                          .map((Supplier s) => DropdownMenuItem(
-                                value: s.id,
-                                child: Text(s.supplierName),
-                              ))
-                          .toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          supplierId = v;
-                        });
-                      },
+                    /// SUPPLIER
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Supplier",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 260,
+                          child: DropdownButtonFormField<int>(
+                            key: ValueKey('po-supplier-$selectedPoId-$supplierId'),
+                            initialValue: selectedSupplierValue,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                            items: supplierCtrl.list
+                                .map((Supplier s) => DropdownMenuItem(
+                                      value: s.id,
+                                      child: Text(s.supplierName, style: const TextStyle(fontSize: 13)),
+                                    ))
+                                .toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                supplierId = v;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            /// ================= GRID TITLE =================
-            const Text(
-              "Items",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
 
             /// ================= MODERN GRID =================
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: scheme.outlineVariant),
                 ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    headingRowColor:
-                        WidgetStateProperty.all(Colors.grey.shade100),
-                    columnSpacing: 40,
-                    columns: const [
-                      DataColumn(label: Text("S.No")),
-                      DataColumn(label: Text("Item")),
-                      DataColumn(label: Text("Qty")),
-                      DataColumn(label: Text("Rate")),
-                      DataColumn(label: Text("Amount")),
-                      DataColumn(label: Text("")),
-                    ],
-                    rows: List.generate(items.length, (i) {
-                      final item = items[i];
-
-                      final amount = (double.parse(item['qty'].toString()) *
-                          double.parse(item['rate'].toString()));
-
-                      return DataRow(
-                        color: WidgetStateProperty.resolveWith((states) {
-                          if (i.isEven) {
-                            return const Color(0xffFAFBFD);
-                          }
-                          return Colors.white;
-                        }),
-                        cells: [
-                          DataCell(Text("${i + 1}")),
-                          DataCell(Text(item['item_name'])),
-                          DataCell(
-                            SizedBox(
-                              width: 80,
-                              child: TextFormField(
-                                key: ValueKey(
-                                  'po-$selectedPoId-${item['id'] ?? item['item_code'] ?? item['item_name']}-qty',
-                                ),
-                                initialValue: item['qty'].toString(),
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
-                                ),
-                                onChanged: (v) {
-                                  item['qty'] = double.tryParse(v) ?? 0;
-                                  setState(() {});
-                                },
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            SizedBox(
-                              width: 90,
-                              child: TextFormField(
-                                key: ValueKey(
-                                  'po-$selectedPoId-${item['id'] ?? item['item_code'] ?? item['item_name']}-rate',
-                                ),
-                                initialValue: item['rate'].toString(),
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
-                                ),
-                                onChanged: (v) {
-                                  item['rate'] = double.tryParse(v) ?? 0;
-                                  setState(() {});
-                                },
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              amount.toStringAsFixed(2),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              color: Colors.red,
-                              onPressed: () {
-                                items.removeAt(i);
-                                setState(() {});
-                              },
-                            ),
-                          ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(scheme.surfaceContainerHighest),
+                        columnSpacing: 40,
+                        columns: const [
+                          DataColumn(label: Text("S.No")),
+                          DataColumn(label: Text("Item")),
+                          DataColumn(label: Text("Qty")),
+                          DataColumn(label: Text("Rate")),
+                          DataColumn(label: Text("Amount")),
+                          DataColumn(label: Text("")),
                         ],
-                      );
-                    }),
+                        rows: List.generate(items.length, (i) {
+                          final item = items[i];
+
+                          final amount = (double.parse(item['qty'].toString()) *
+                              double.parse(item['rate'].toString()));
+
+                          return DataRow(
+                            color: WidgetStateProperty.resolveWith((states) {
+                              if (i.isEven) {
+                                return const Color(0xffFAFBFD);
+                              }
+                              return Colors.white;
+                            }),
+                            cells: [
+                              DataCell(Text("${i + 1}")),
+                              DataCell(Text(item['item_name'])),
+                              DataCell(
+                                SizedBox(
+                                  width: 80,
+                                  child: TextFormField(
+                                    key: ValueKey(
+                                      'po-$selectedPoId-${item['id'] ?? item['item_code'] ?? item['item_name']}-qty',
+                                    ),
+                                    initialValue: item['qty'].toString(),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    onChanged: (v) {
+                                      item['qty'] = double.tryParse(v) ?? 0;
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                SizedBox(
+                                  width: 90,
+                                  child: TextFormField(
+                                    key: ValueKey(
+                                      'po-$selectedPoId-${item['id'] ?? item['item_code'] ?? item['item_name']}-rate',
+                                    ),
+                                    initialValue: item['rate'].toString(),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    onChanged: (v) {
+                                      item['rate'] = double.tryParse(v) ?? 0;
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Text(
+                                  amount.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  color: Colors.red,
+                                  onPressed: () {
+                                    items.removeAt(i);
+                                    setState(() {});
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -645,34 +680,36 @@ class _PurchaseOrderModifyScreenState extends State<PurchaseOrderModifyScreen> {
             const SizedBox(height: 16),
 
             /// ================= TOTAL BAR =================
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 14,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade200),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    "Total Amount",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 300,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: scheme.outlineVariant),
                   ),
-                  const Spacer(),
-                  Text(
-                    "₹ ${total.toStringAsFixed(2)}",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        "Total Amount",
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "₹ ${total.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.primary,
+                        ),
+                      )
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SafeArea(
@@ -680,17 +717,17 @@ class _PurchaseOrderModifyScreenState extends State<PurchaseOrderModifyScreen> {
               child: Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                alignment: WrapAlignment.center,
+                alignment: WrapAlignment.end,
                 children: [
                   if (_canModify)
                     Tooltip(
                       message: 'Cancel purchase order',
                       child: SizedBox(
-                        width: 180,
-                        height: 56,
+                        width: 140,
+                        height: 44,
                         child: OutlinedButton.icon(
                           onPressed: _cancelPo,
-                          icon: const Icon(Icons.cancel_outlined),
+                          icon: const Icon(Icons.cancel_outlined, size: 18),
                           label: const Text('Cancel PO'),
                         ),
                       ),
@@ -699,11 +736,11 @@ class _PurchaseOrderModifyScreenState extends State<PurchaseOrderModifyScreen> {
                     Tooltip(
                       message: 'Print purchase order',
                       child: SizedBox(
-                        width: 180,
-                        height: 56,
+                        width: 140,
+                        height: 44,
                         child: FilledButton.icon(
                           onPressed: _reprint,
-                          icon: const Icon(Icons.print_outlined),
+                          icon: const Icon(Icons.print_outlined, size: 18),
                           label: const Text('Print'),
                         ),
                       ),
@@ -712,11 +749,11 @@ class _PurchaseOrderModifyScreenState extends State<PurchaseOrderModifyScreen> {
                     Tooltip(
                       message: 'Save purchase order changes',
                       child: SizedBox(
-                        width: 200,
-                        height: 56,
+                        width: 140,
+                        height: 44,
                         child: FilledButton.icon(
                           onPressed: _save,
-                          icon: const Icon(Icons.save_outlined),
+                          icon: const Icon(Icons.save_outlined, size: 18),
                           label: const Text('Save'),
                         ),
                       ),

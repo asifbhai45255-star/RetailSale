@@ -54,6 +54,7 @@ class SalesReportItem {
   final double qty;
   final double rate;
   final double amount;
+  final double lineDiscount;
   final double taxableAmount;
   final double taxAmount;
   final double netAmount;
@@ -72,6 +73,7 @@ class SalesReportItem {
     required this.qty,
     required this.rate,
     required this.amount,
+    required this.lineDiscount,
     required this.taxableAmount,
     required this.taxAmount,
     required this.netAmount,
@@ -93,6 +95,7 @@ class SalesReportItem {
       qty: _toDouble(json['qty']),
       rate: _toDouble(json['rate']),
       amount: _toDouble(json['amount']),
+      lineDiscount: _toDouble(json['line_discount'] ?? json['lineDiscount']),
       taxableAmount: _toDouble(json['taxable_amount']),
       taxAmount: _toDouble(json['tax_amount']),
       netAmount: _toDouble(json['net_amount']),
@@ -242,6 +245,7 @@ class SalesSummary {
   final double otherTaxesCollected;
   final double totalTaxesCollected;
   final double totalRevenue;
+  final double subscriptionRealized;
   final double estimatedCost;
   final double estimatedProfit;
   final double estimatedLoss;
@@ -260,6 +264,7 @@ class SalesSummary {
     required this.otherTaxesCollected,
     required this.totalTaxesCollected,
     required this.totalRevenue,
+    required this.subscriptionRealized,
     required this.estimatedCost,
     required this.estimatedProfit,
     required this.estimatedLoss,
@@ -280,6 +285,7 @@ class SalesSummary {
       otherTaxesCollected: _toDouble(json['other_taxes_collected']),
       totalTaxesCollected: _toDouble(json['total_taxes_collected']),
       totalRevenue: _toDouble(json['total_revenue']),
+      subscriptionRealized: _toDouble(json['subscription_realized']),
       estimatedCost: _toDouble(json['estimated_cost']),
       estimatedProfit: _toDouble(json['estimated_profit']),
       estimatedLoss: _toDouble(json['estimated_loss']),
@@ -300,6 +306,7 @@ class SalesSummary {
     otherTaxesCollected: 0,
     totalTaxesCollected: 0,
     totalRevenue: 0,
+    subscriptionRealized: 0,
     estimatedCost: 0,
     estimatedProfit: 0,
     estimatedLoss: 0,

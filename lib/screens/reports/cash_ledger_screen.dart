@@ -1583,7 +1583,10 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
                 ? (constraints.maxWidth - 60) / 3
                 : constraints.maxWidth;
 
-        return Container(
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Container(
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1625,7 +1628,7 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
                 _dropdown(
                   ledgerPaymentMethod,
                   'Payment',
-                  const ['', 'CASH', 'CARD', 'UPI', 'BANK', 'CREDIT'],
+                  const ['', 'CASH', 'CARD', 'UPI', 'BANK', 'CREDIT', 'SUBSCRIPTION'],
                   (v) => setState(() => ledgerPaymentMethod = v ?? ''),
                   width: narrowFieldWidth,
                 ),
@@ -1677,6 +1680,8 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
               ),
             ],
           ),
+        ),
+          ),
         );
       },
     );
@@ -1699,44 +1704,186 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
         )
         .toList(growable: false);
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          _summaryWrap([
-            _summaryCard(
-                'Credit Bills', '${ctrl.totalCreditBills}', Colors.blue),
-            _summaryCard(
-                'Outstanding', _money(ctrl.totalOutstanding), Colors.red),
-            _summaryCard('Advance', _money(ctrl.totalAdvance), Colors.green),
-          ]),
-          const SizedBox(height: 12),
-          ...visibleCustomers.map(
-            (entry) {
-              final customer = entry['customer'] as CreditCustomerReport;
-              final bills = entry['bills'] as List<CreditBill>;
-              return Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _summaryWrap([
+                _summaryCard(
+                    'Credit Bills', '${ctrl.totalCreditBills}', Colors.blue),
+                _summaryCard(
+                    'Outstanding', _money(ctrl.totalOutstanding), Colors.red),
+                _summaryCard('Advance', _money(ctrl.totalAdvance), Colors.green),
+              ]),
+              const SizedBox(height: 12),
+              ...visibleCustomers.map(
+                (entry) {
+                  final customer = entry['customer'] as CreditCustomerReport;
+                  final bills = entry['bills'] as List<CreditBill>;
+                  return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ExpansionTile(
+                    tilePadding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    title: Text(
+                      customer.customerName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      '${customer.customerPhone} - Outstanding ${_money(customer.totalOutstanding)} - Advance ${_money(customer.totalAdvance)}',
+                    ),
+                    children: bills
+                        .map(
+                          (bill) => Container(
+                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFD),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          bill.billNo,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${_fmtDate(bill.billDate)} - ${_money(bill.amount)}',
+                                        ),
+                                      ],
+                                    ),
+                                    _statusChip(bill.paymentStatus),
+                                    FilledButton.tonal(
+                                      onPressed: () => _showRepaymentDialog(bill),
+                                      child: const Text('Repayment'),
+                                    ),
+                                    FilledButton.tonal(
+                                      onPressed: bill.outstanding > 0.009
+                                          ? () => _showWaiveOffDialog(bill)
+                                          : null,
+                                      child: const Text('Waive Off'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                Wrap(
+                                  spacing: 16,
+                                  runSpacing: 12,
+                                  children: [
+                                    _summaryCard(
+                                      'Initial Paid',
+                                      _money(bill.initialPaid),
+                                      Colors.blueGrey,
+                                    ),
+                                    _summaryCard(
+                                      'Repaid',
+                                      _money(bill.repaymentTotal),
+                                      Colors.green,
+                                    ),
+                                    _summaryCard(
+                                      'Total Paid',
+                                      _money(bill.totalPaid),
+                                      Colors.blue,
+                                    ),
+                                    _summaryCard(
+                                      'Outstanding',
+                                      _money(bill.outstanding),
+                                      Colors.red,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                if (bill.payments.isEmpty)
+                                  const Text('No repayment transactions yet.')
+                                else
+                                  ...bill.payments.map(
+                                    (payment) => Container(
+                                      margin: const EdgeInsets.only(bottom: 10),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: Colors.black12,
+                                        ),
+                                      ),
+                                      child: Wrap(
+                                        alignment: WrapAlignment.spaceBetween,
+                                        runSpacing: 8,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                              '${_paymentModeLabel(payment.paymentMode)} - ${_money(payment.amount)}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                              Text(
+                                                '${_fmtDate(payment.paymentDate)} - ${payment.referenceNo}',
+                                              ),
+                                              if (payment.note.trim().isNotEmpty)
+                                                Text(payment.note),
+                                            ],
+                                          ),
+                                          IconButton(
+                                            onPressed: () => _showRepaymentDialog(
+                                              bill,
+                                              payment: payment,
+                                            ),
+                                            icon: const Icon(Icons.edit_outlined),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+                },
               ),
-              child: ExpansionTile(
-                tilePadding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                title: Text(
-                  customer.customerName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${customer.customerPhone} - Outstanding ${_money(customer.totalOutstanding)} - Advance ${_money(customer.totalAdvance)}',
-                ),
-                children: bills
-                    .map(
-                      (bill) => Container(
-                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              ...visibleCustomers
+                  .where(
+                    (entry) =>
+                        (entry['customer'] as CreditCustomerReport)
+                            .advances
+                            .isNotEmpty,
+                  )
+                  .map(
+                    (entry) {
+                      final customer = entry['customer'] as CreditCustomerReport;
+                      return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFD),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1750,213 +1897,80 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      bill.billNo,
+                                      '${customer.customerName} Advances',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
                                     ),
                                     Text(
-                                      '${_fmtDate(bill.billDate)} - ${_money(bill.amount)}',
+                                      'Available ${_money(customer.totalAdvance)}',
                                     ),
                                   ],
                                 ),
-                                _statusChip(bill.paymentStatus),
                                 FilledButton.tonal(
-                                  onPressed: () => _showRepaymentDialog(bill),
-                                  child: const Text('Repayment'),
-                                ),
-                                FilledButton.tonal(
-                                  onPressed: bill.outstanding > 0.009
-                                      ? () => _showWaiveOffDialog(bill)
-                                      : null,
-                                  child: const Text('Waive Off'),
+                                  onPressed: () => _showAdvanceDialog(customer),
+                                  child: const Text('Add Advance'),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 14),
-                            Wrap(
-                              spacing: 16,
-                              runSpacing: 12,
-                              children: [
-                                _summaryCard(
-                                  'Initial Paid',
-                                  _money(bill.initialPaid),
-                                  Colors.blueGrey,
-                                ),
-                                _summaryCard(
-                                  'Repaid',
-                                  _money(bill.repaymentTotal),
-                                  Colors.green,
-                                ),
-                                _summaryCard(
-                                  'Total Paid',
-                                  _money(bill.totalPaid),
-                                  Colors.blue,
-                                ),
-                                _summaryCard(
-                                  'Outstanding',
-                                  _money(bill.outstanding),
-                                  Colors.red,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            if (bill.payments.isEmpty)
-                              const Text('No repayment transactions yet.')
-                            else
-                              ...bill.payments.map(
-                                (payment) => Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: Colors.black12,
-                                    ),
+                            ...customer.advances.map(
+                              (advance) => Container(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: Colors.black12,
                                   ),
-                                  child: Wrap(
-                                    alignment: WrapAlignment.spaceBetween,
-                                    runSpacing: 8,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                          '${_paymentModeLabel(payment.paymentMode)} - ${_money(payment.amount)}',
+                                ),
+                                child: Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  runSpacing: 8,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${advance.paymentMode} - ${_money(advance.originalAmount)}',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                          Text(
-                                            '${_fmtDate(payment.paymentDate)} - ${payment.referenceNo}',
-                                          ),
-                                          if (payment.note.trim().isNotEmpty)
-                                            Text(payment.note),
-                                        ],
-                                      ),
-                                      IconButton(
-                                        onPressed: () => _showRepaymentDialog(
-                                          bill,
-                                          payment: payment,
+                                        Text(
+                                          '${_fmtDate(advance.advanceDate)} - Available ${_money(advance.availableAmount)}',
                                         ),
+                                        if (advance.referenceNo.trim().isNotEmpty)
+                                          Text(advance.referenceNo),
+                                        if (advance.note.trim().isNotEmpty)
+                                          Text(advance.note),
+                                      ],
+                                    ),
+                                    if (advance.paymentMode.trim().toUpperCase() !=
+                                            'SUBSCRIPTION')
+                                      IconButton(
+                                        onPressed: () =>
+                                            _showAdvanceDialog(customer, advance: advance),
                                         icon: const Icon(Icons.edit_outlined),
                                       ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
                               ),
+                            ),
                           ],
                         ),
                       ),
-                    )
-                    .toList(),
-              ),
-            );
-            },
+                    );
+                    },
+                  ),
+              if (visibleCustomers.isEmpty)
+                _emptyCard('No credit bills found for the selected filters.'),
+              const SizedBox(height: 16),
+            ],
           ),
-          ...visibleCustomers
-              .where(
-                (entry) =>
-                    (entry['customer'] as CreditCustomerReport)
-                        .advances
-                        .isNotEmpty,
-              )
-              .map(
-                (entry) {
-                  final customer = entry['customer'] as CreditCustomerReport;
-                  return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${customer.customerName} Advances',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                Text(
-                                  'Available ${_money(customer.totalAdvance)}',
-                                ),
-                              ],
-                            ),
-                            FilledButton.tonal(
-                              onPressed: () => _showAdvanceDialog(customer),
-                              child: const Text('Add Advance'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        ...customer.advances.map(
-                          (advance) => Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: Colors.black12,
-                              ),
-                            ),
-                            child: Wrap(
-                              alignment: WrapAlignment.spaceBetween,
-                              runSpacing: 8,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${advance.paymentMode} - ${_money(advance.originalAmount)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${_fmtDate(advance.advanceDate)} - Available ${_money(advance.availableAmount)}',
-                                    ),
-                                    if (advance.referenceNo.trim().isNotEmpty)
-                                      Text(advance.referenceNo),
-                                    if (advance.note.trim().isNotEmpty)
-                                      Text(advance.note),
-                                  ],
-                                ),
-                                if (advance.paymentMode.trim().toUpperCase() !=
-                                        'SUBSCRIPTION')
-                                  IconButton(
-                                    onPressed: () =>
-                                        _showAdvanceDialog(customer, advance: advance),
-                                    icon: const Icon(Icons.edit_outlined),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-                },
-              ),
-          if (visibleCustomers.isEmpty)
-            _emptyCard('No credit bills found for the selected filters.'),
-        ],
+        ),
       ),
     );
   }
@@ -2308,266 +2322,316 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
 
   Widget _expenseTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          _summaryWrap([
-            _summaryCard(
-                'Expense Total', _money(ctrl.expenseTotal), Colors.red),
-            _summaryCard('Entries', '${ctrl.expenses.length}', Colors.orange),
-          ]),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Quick expense entry',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    const Text(
-                        'Add salary, petrol, diesel, commission, rent and keep remarks like who was paid and why.'),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: expensePresets
-                          .map((preset) => OutlinedButton(
-                              onPressed: () =>
-                                  _showExpenseDialog(initialCategory: preset),
-                              child: Text(preset)))
-                          .toList(),
-                    ),
-                  ]),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...ctrl.expenses.map((expense) => Card(
-                child: ListTile(
-                  title: Text(expense.category,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(
-                      '${_fmtDate(expense.expenseDate)}  -  ${expense.note}'),
-                  trailing: Wrap(spacing: 8, children: [
-                    Text(_money(expense.amount),
-                        style: const TextStyle(
-                            color: Colors.red, fontWeight: FontWeight.bold)),
-                    IconButton(
-                        onPressed: () => _showExpenseDialog(expense: expense),
-                        icon: const Icon(Icons.edit_outlined)),
-                  ]),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _summaryWrap([
+                _summaryCard(
+                    'Expense Total', _money(ctrl.expenseTotal), Colors.red),
+                _summaryCard('Entries', '${ctrl.expenses.length}', Colors.orange),
+              ]),
+              const SizedBox(height: 12),
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Quick expense entry',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        const Text(
+                            'Add salary, petrol, diesel, commission, rent and keep remarks like who was paid and why.'),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: expensePresets
+                              .map((preset) => OutlinedButton(
+                                  onPressed: () =>
+                                      _showExpenseDialog(initialCategory: preset),
+                                  child: Text(preset)))
+                              .toList(),
+                        ),
+                      ]),
                 ),
-              )),
-          if (ctrl.expenses.isEmpty)
-            _emptyCard('No expenses found for the selected range.'),
-        ],
+              ),
+              const SizedBox(height: 8),
+              ...ctrl.expenses.map((expense) => Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      title: Text(expense.category,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(
+                          '${_fmtDate(expense.expenseDate)}  -  ${expense.note}'),
+                      trailing: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                        Text(_money(expense.amount),
+                            style: const TextStyle(
+                                color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)),
+                        IconButton(
+                            onPressed: () => _showExpenseDialog(expense: expense),
+                            icon: const Icon(Icons.edit_outlined)),
+                      ]),
+                    ),
+                  )),
+              if (ctrl.expenses.isEmpty)
+                _emptyCard('No expenses found for the selected range.'),
+              const SizedBox(height: 80),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _incomeTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          _summaryWrap([
-            _summaryCard(
-                'Income Total', _money(ctrl.incomeTotal), Colors.green),
-            _summaryCard('Entries', '${ctrl.incomes.length}', Colors.teal),
-          ]),
-          const SizedBox(height: 12),
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Other income',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Use this for income like box sale, loading charges, rent recovery, or any extra cash received. It will be adjusted in the ledger automatically.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...ctrl.incomes.map(
-            (income) => Card(
-              child: ListTile(
-                title: Text(
-                  income.source,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${_fmtDate(income.incomeDate)}  -  ${income.partyName.isEmpty ? income.note : income.partyName}',
-                ),
-                trailing: Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      _money(income.amount),
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _summaryWrap([
+                _summaryCard(
+                    'Income Total', _money(ctrl.incomeTotal), Colors.green),
+                _summaryCard('Entries', '${ctrl.incomes.length}', Colors.teal),
+              ]),
+              const SizedBox(height: 12),
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Other income',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => _showIncomeDialog(income: income),
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                  ],
+                      SizedBox(height: 8),
+                      Text(
+                        'Use this for income like box sale, loading charges, rent recovery, or any extra cash received. It will be adjusted in the ledger automatically.',
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+              ...ctrl.incomes.map(
+                (income) => Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    title: Text(
+                      income.source,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      '${_fmtDate(income.incomeDate)}  -  ${income.partyName.isEmpty ? income.note : income.partyName}',
+                    ),
+                    trailing: Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          _money(income.amount),
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => _showIncomeDialog(income: income),
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (ctrl.incomes.isEmpty)
+                _emptyCard('No income entries found for the selected range.'),
+              const SizedBox(height: 80),
+            ],
           ),
-          if (ctrl.incomes.isEmpty)
-            _emptyCard('No income entries found for the selected range.'),
-        ],
+        ),
       ),
     );
   }
 
   Widget _withdrawalTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          _summaryWrap([
-            _summaryCard(
-                'Withdrawal Total', _money(ctrl.withdrawalTotal), Colors.red),
-            _summaryCard(
-                'Entries', '${ctrl.withdrawals.length}', Colors.deepOrange),
-          ]),
-          const SizedBox(height: 12),
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cash withdrawal',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Use this tab for owner withdrawal, bank deposit, petty cash movement, or other cash taken out. It will be posted to ledger debit automatically.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...ctrl.withdrawals.map(
-            (withdrawal) => Card(
-              child: ListTile(
-                title: Text(
-                  withdrawal.purpose,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${_fmtDate(withdrawal.withdrawalDate)}  -  ${withdrawal.note}',
-                ),
-                trailing: Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      _money(withdrawal.amount),
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _summaryWrap([
+                _summaryCard(
+                    'Withdrawal Total', _money(ctrl.withdrawalTotal), Colors.red),
+                _summaryCard(
+                    'Entries', '${ctrl.withdrawals.length}', Colors.deepOrange),
+              ]),
+              const SizedBox(height: 12),
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cash withdrawal',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () =>
-                          _showWithdrawalDialog(withdrawal: withdrawal),
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                  ],
+                      SizedBox(height: 8),
+                      Text(
+                        'Use this tab for owner withdrawal, bank deposit, petty cash movement, or other cash taken out. It will be posted to ledger debit automatically.',
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+              ...ctrl.withdrawals.map(
+                (withdrawal) => Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    title: Text(
+                      withdrawal.purpose,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      '${_fmtDate(withdrawal.withdrawalDate)}  -  ${withdrawal.note}',
+                    ),
+                    trailing: Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          _money(withdrawal.amount),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () =>
+                              _showWithdrawalDialog(withdrawal: withdrawal),
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (ctrl.withdrawals.isEmpty)
+                _emptyCard('No withdrawals found for the selected range.'),
+              const SizedBox(height: 80),
+            ],
           ),
-          if (ctrl.withdrawals.isEmpty)
-            _emptyCard('No withdrawals found for the selected range.'),
-        ],
+        ),
       ),
     );
   }
 
   Widget _openingTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(children: [
-        _summaryWrap([
-          _summaryCard(
-              'Carry Forward', _money(ctrl.carriedOpeningBalance), Colors.blue),
-          _summaryCard('Saved Days', '${ctrl.openings.length}', Colors.teal),
-        ]),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(.08),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Text(
-                  'Opening deposit is carried forward automatically at local day-end. If you do not save a new deposit for the next day, the previous closing balance will be used.',
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _summaryWrap([
+                _summaryCard(
+                    'Carry Forward', _money(ctrl.carriedOpeningBalance), Colors.blue),
+                _summaryCard('Saved Days', '${ctrl.openings.length}', Colors.teal),
+              ]),
+              const SizedBox(height: 12),
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(.08),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Text(
+                        'Opening deposit is carried forward automatically at local day-end. If you do not save a new deposit for the next day, the previous closing balance will be used.',
+                      ),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Balance Date'),
+                      subtitle: Text(_fmtDate(openingDate)),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                            context: context,
+                            initialDate: openingDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100));
+                        if (picked != null) setState(() => openingDate = picked);
+                      },
+                    ),
+                    TextField(
+                        controller: openingAmountCtrl,
+                        decoration:
+                            const InputDecoration(labelText: 'Opening Deposit')),
+                    const SizedBox(height: 12),
+                    TextField(
+                        controller: openingNoteCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(labelText: 'Note')),
+                    const SizedBox(height: 12),
+                    Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.icon(
+                            onPressed: _saveOpeningBalance,
+                            icon: const Icon(Icons.save_outlined),
+                            label: const Text('Save'))),
+                  ]),
                 ),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Balance Date'),
-                subtitle: Text(_fmtDate(openingDate)),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                      context: context,
-                      initialDate: openingDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100));
-                  if (picked != null) setState(() => openingDate = picked);
-                },
-              ),
-              TextField(
-                  controller: openingAmountCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Opening Deposit')),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: openingNoteCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(labelText: 'Note')),
-              const SizedBox(height: 12),
-              Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.icon(
-                      onPressed: _saveOpeningBalance,
-                      icon: const Icon(Icons.save_outlined),
-                      label: const Text('Save'))),
-            ]),
+              const SizedBox(height: 8),
+              ...ctrl.openings.map((item) => Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      title: Text(_fmtDate(item.balanceDate),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(item.note),
+                      trailing: Text(_money(item.openingBalance),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))))),
+              const SizedBox(height: 80),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        ...ctrl.openings.map((item) => Card(
-            child: ListTile(
-                title: Text(_fmtDate(item.balanceDate)),
-                subtitle: Text(item.note),
-                trailing: Text(_money(item.openingBalance))))),
-      ]),
+      ),
     );
   }
 

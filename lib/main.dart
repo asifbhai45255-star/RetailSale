@@ -95,14 +95,64 @@ class MyApp extends StatelessWidget {
         break;
     }
 
+    final borderStyle = uiPrefs.textfieldBorderStyle;
+    InputBorder border;
+    InputBorder enabledBorder;
+    InputBorder focusedBorder;
+    InputBorder errorBorder;
+
+    if (borderStyle == 'none') {
+      border = InputBorder.none;
+      enabledBorder = InputBorder.none;
+      focusedBorder = InputBorder.none;
+      errorBorder = InputBorder.none;
+    } else if (borderStyle == 'underlined') {
+      border = UnderlineInputBorder(
+        borderSide: BorderSide(color: scheme.outlineVariant),
+      );
+      enabledBorder = UnderlineInputBorder(
+        borderSide: BorderSide(color: scheme.outlineVariant),
+      );
+      focusedBorder = UnderlineInputBorder(
+        borderSide: BorderSide(color: scheme.primary, width: 2.0),
+      );
+      errorBorder = UnderlineInputBorder(
+        borderSide: BorderSide(color: scheme.error, width: 1.5),
+      );
+    } else {
+      final double fieldRadius = borderStyle == 'rectangular' ? 0.0 : 10.0;
+      border = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(fieldRadius),
+        borderSide: BorderSide(color: scheme.outlineVariant),
+      );
+      enabledBorder = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(fieldRadius),
+        borderSide: BorderSide(color: scheme.outlineVariant),
+      );
+      focusedBorder = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(fieldRadius),
+        borderSide: BorderSide(color: scheme.primary, width: 2.0),
+      );
+      errorBorder = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(fieldRadius),
+        borderSide: BorderSide(color: scheme.error, width: 1.5),
+      );
+    }
+
+    final dynamicInputDecorationTheme = baseTheme.inputDecorationTheme.copyWith(
+      contentPadding: textFieldPadding,
+      constraints: BoxConstraints(minHeight: minInputHeight),
+      border: border,
+      enabledBorder: enabledBorder,
+      focusedBorder: focusedBorder,
+      errorBorder: errorBorder,
+    );
+
     final theme = uiPrefs.touchMode
         ? baseTheme.copyWith(
             visualDensity: VisualDensity.comfortable,
             materialTapTargetSize: MaterialTapTargetSize.padded,
-            inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
-              contentPadding: textFieldPadding,
-              constraints: BoxConstraints(minHeight: minInputHeight),
-            ),
+            inputDecorationTheme: dynamicInputDecorationTheme,
             cardTheme: baseTheme.cardTheme.copyWith(color: resolvedCardColor),
             filledButtonTheme: FilledButtonThemeData(
               style: baseTheme.filledButtonTheme.style?.copyWith(
@@ -116,10 +166,7 @@ class MyApp extends StatelessWidget {
             ),
           )
         : baseTheme.copyWith(
-            inputDecorationTheme: baseTheme.inputDecorationTheme.copyWith(
-              contentPadding: textFieldPadding,
-              constraints: BoxConstraints(minHeight: minInputHeight),
-            ),
+            inputDecorationTheme: dynamicInputDecorationTheme,
             cardTheme: baseTheme.cardTheme.copyWith(color: resolvedCardColor),
           );
 

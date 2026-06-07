@@ -340,19 +340,9 @@ class _RequestModifyScreenState extends State<RequestModifyScreen> {
     );
   }
 
-  Widget _modernFieldDecoration(Widget child) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: child,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final selectedRequestValue = _singleMatchOrNull<int>(
       ctrl.requests.map((e) => int.tryParse(e['id'].toString())),
       requestId,
@@ -373,94 +363,144 @@ class _RequestModifyScreenState extends State<RequestModifyScreen> {
           children: [
             /// FILTER SECTION
             Container(
-              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: scheme.outlineVariant),
               ),
-              child: Row(
-                children: [
-                  /// DATE
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.calendar_today, size: 18),
-                    label: Text(
-                      DateFormat('dd-MMM-yyyy').format(selectedDate),
-                    ),
-                    onPressed: () async {
-                      final d = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-
-                      if (d != null) {
-                        selectedDate = d;
-                        await _loadRequests();
-                      }
-                    },
-                  ),
-
-                  const SizedBox(width: 20),
-
-                  /// REQUEST NO
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      key: ValueKey('request-$requestId'),
-                      value: selectedRequestValue,
-                      decoration: InputDecoration(
-                        labelText: "Request No",
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 16,
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  children: [
+                    /// DATE
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Date",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                      items: ctrl.requests
-                          .map<DropdownMenuItem<int>>(
-                              (e) => DropdownMenuItem<int>(
-                                    value: int.parse(e['id'].toString()),
-                                    child: Text(e['request_no']),
-                                  ))
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) _loadDetails(v);
-                      },
-                    ),
-                  ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 160,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.calendar_today, size: 14),
+                            label: Text(
+                              DateFormat('dd-MMM-yyyy').format(selectedDate),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            onPressed: () async {
+                              final d = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
 
-                  const SizedBox(width: 20),
-
-                  /// DEPARTMENT
-                  Expanded(
-                    child: DropdownButtonFormField<StockLocationdata>(
-                      key: ValueKey(
-                        'request-department-$requestId-${selectedDepartment?.id ?? selectedDepartment?.locationName}',
-                      ),
-                      value: selectedDepartmentValue,
-                      decoration: InputDecoration(
-                        labelText: "Department",
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                              if (d != null) {
+                                selectedDate = d;
+                                await _loadRequests();
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                      items: issueCtrl.departments.map((d) {
-                        return DropdownMenuItem(
-                          value: d,
-                          child: Text(d.locationName),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        setState(() {
-                          selectedDepartment = v;
-                        });
-                      },
+                      ],
                     ),
-                  ),
-                ],
+
+                    /// REQUEST NO
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Request No",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 220,
+                          child: DropdownButtonFormField<int>(
+                            key: ValueKey('request-$requestId'),
+                            initialValue: selectedRequestValue,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                            items: ctrl.requests
+                                .map<DropdownMenuItem<int>>(
+                                    (e) => DropdownMenuItem<int>(
+                                          value: int.parse(e['id'].toString()),
+                                          child: Text(e['request_no'], style: const TextStyle(fontSize: 13)),
+                                        ))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) _loadDetails(v);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    /// DEPARTMENT
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Department",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 260,
+                          child: DropdownButtonFormField<StockLocationdata>(
+                            key: ValueKey(
+                              'request-department-$requestId-${selectedDepartment?.id ?? selectedDepartment?.locationName}',
+                            ),
+                            initialValue: selectedDepartmentValue,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                            items: issueCtrl.departments.map((d) {
+                              return DropdownMenuItem(
+                                value: d,
+                                child: Text(d.locationName, style: const TextStyle(fontSize: 13)),
+                              );
+                            }).toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                selectedDepartment = v;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -471,110 +511,112 @@ class _RequestModifyScreenState extends State<RequestModifyScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: scheme.outlineVariant),
                 ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                      Colors.grey.shade100,
-                    ),
-                    columnSpacing: 40,
-                    columns: const [
-                      DataColumn(label: Text("S.No")),
-                      DataColumn(label: Text("Item")),
-                      DataColumn(label: Text("Unit")),
-                      DataColumn(label: Text("Qty")),
-                      DataColumn(label: Text("Rate")),
-                      DataColumn(label: Text("Amount")),
-                      DataColumn(label: Text("Action")),
-                    ],
-                    rows: List.generate(items.length, (i) {
-                      final item = items[i];
-
-                      final amount = double.parse(item['qty'].toString()) *
-                          double.parse(item['rate'].toString());
-
-                      return DataRow(
-                        color: WidgetStateProperty.resolveWith((states) {
-                          return i.isEven
-                              ? const Color(0xffFAFBFD)
-                              : Colors.white;
-                        }),
-                        cells: [
-                          DataCell(Text("${i + 1}")),
-                          DataCell(Text(item['item_master']['item_name'])),
-                          DataCell(Text(item['item_master']['unit'])),
-                          DataCell(
-                            SizedBox(
-                              width: 80,
-                              child: _modernFieldDecoration(
-                                TextFormField(
-                                  key: ValueKey(
-                                    'request-$requestId-${item['id'] ?? item['item_code'] ?? item['item_master']?['item_code'] ?? item['item_master']?['item_name']}-qty',
-                                  ),
-                                  initialValue: item['qty'].toString(),
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                  ),
-                                  onChanged: (v) {
-                                    item['qty'] = double.tryParse(v) ?? 0;
-                                    setState(() {});
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            SizedBox(
-                              width: 90,
-                              child: _modernFieldDecoration(
-                                TextFormField(
-                                  key: ValueKey(
-                                    'request-$requestId-${item['id'] ?? item['item_code'] ?? item['item_master']?['item_code'] ?? item['item_master']?['item_name']}-rate',
-                                  ),
-                                  initialValue: item['rate'].toString(),
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                  ),
-                                  onChanged: (v) {
-                                    item['rate'] = double.tryParse(v) ?? 0;
-                                    setState(() {});
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              amount.toStringAsFixed(2),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          DataCell(
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              color: Colors.red,
-                              tooltip: "Delete Item",
-                              onPressed: () {
-                                if (items.length == 1) {
-                                  _msg("At least one item required");
-                                  return;
-                                }
-
-                                setState(() {
-                                  items.removeAt(i);
-                                });
-                              },
-                            ),
-                          ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(scheme.surfaceContainerHighest),
+                        columnSpacing: 40,
+                        columns: const [
+                          DataColumn(label: Text("S.No")),
+                          DataColumn(label: Text("Item")),
+                          DataColumn(label: Text("Unit")),
+                          DataColumn(label: Text("Qty")),
+                          DataColumn(label: Text("Rate")),
+                          DataColumn(label: Text("Amount")),
+                          DataColumn(label: Text("Action")),
                         ],
-                      );
-                    }),
+                        rows: List.generate(items.length, (i) {
+                          final item = items[i];
+
+                          final amount = double.parse(item['qty'].toString()) *
+                              double.parse(item['rate'].toString());
+
+                          return DataRow(
+                            color: WidgetStateProperty.resolveWith((states) {
+                              return i.isEven
+                                  ? const Color(0xffFAFBFD)
+                                  : Colors.white;
+                            }),
+                            cells: [
+                              DataCell(Text("${i + 1}")),
+                              DataCell(Text(item['item_master']['item_name'])),
+                              DataCell(Text(item['item_master']['unit'] ?? "")),
+                              DataCell(
+                                SizedBox(
+                                  width: 80,
+                                  child: TextFormField(
+                                    key: ValueKey(
+                                      'request-$requestId-${item['id'] ?? item['item_code'] ?? item['item_master']?['item_code'] ?? item['item_master']?['item_name']}-qty',
+                                    ),
+                                    initialValue: item['qty'].toString(),
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    onChanged: (v) {
+                                      item['qty'] = double.tryParse(v) ?? 0;
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                SizedBox(
+                                  width: 90,
+                                  child: TextFormField(
+                                    key: ValueKey(
+                                      'request-$requestId-${item['id'] ?? item['item_code'] ?? item['item_master']?['item_code'] ?? item['item_master']?['item_name']}-rate',
+                                    ),
+                                    initialValue: item['rate'].toString(),
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    onChanged: (v) {
+                                      item['rate'] = double.tryParse(v) ?? 0;
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Text(
+                                  amount.toStringAsFixed(2),
+                                  style:
+                                      const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              DataCell(
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  color: Colors.red,
+                                  tooltip: "Delete Item",
+                                  onPressed: () {
+                                    if (items.length == 1) {
+                                      _msg("At least one item required");
+                                      return;
+                                    }
+
+                                    setState(() {
+                                      items.removeAt(i);
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -583,27 +625,36 @@ class _RequestModifyScreenState extends State<RequestModifyScreen> {
             const SizedBox(height: 16),
 
             /// TOTAL BAR
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    "Total Amount",
-                    style: TextStyle(fontWeight: FontWeight.w600),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 300,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: scheme.outlineVariant),
                   ),
-                  const Spacer(),
-                  Text(
-                    "₹ ${total.toStringAsFixed(2)}",
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                  child: Row(
+                    children: [
+                      const Text(
+                        "Total Amount",
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "₹ ${total.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.primary,
+                        ),
+                      )
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SafeArea(
@@ -617,11 +668,11 @@ class _RequestModifyScreenState extends State<RequestModifyScreen> {
                     Tooltip(
                       message: 'Cancel request',
                       child: SizedBox(
-                        width: 180,
-                        height: 56,
+                        width: 150,
+                        height: 44,
                         child: OutlinedButton.icon(
                           onPressed: _cancelRequest,
-                          icon: const Icon(Icons.cancel_outlined),
+                          icon: const Icon(Icons.cancel_outlined, size: 18),
                           label: const Text('Cancel Request'),
                         ),
                       ),
@@ -630,11 +681,11 @@ class _RequestModifyScreenState extends State<RequestModifyScreen> {
                     Tooltip(
                       message: 'Print request slip',
                       child: SizedBox(
-                        width: 180,
-                        height: 56,
+                        width: 150,
+                        height: 44,
                         child: FilledButton.icon(
                           onPressed: _reprint,
-                          icon: const Icon(Icons.print_outlined),
+                          icon: const Icon(Icons.print_outlined, size: 18),
                           label: const Text('Print'),
                         ),
                       ),
@@ -643,11 +694,11 @@ class _RequestModifyScreenState extends State<RequestModifyScreen> {
                     Tooltip(
                       message: 'Save request changes',
                       child: SizedBox(
-                        width: 180,
-                        height: 56,
+                        width: 150,
+                        height: 44,
                         child: FilledButton.icon(
                           onPressed: _save,
-                          icon: const Icon(Icons.save_outlined),
+                          icon: const Icon(Icons.save_outlined, size: 18),
                           label: const Text('Save'),
                         ),
                       ),

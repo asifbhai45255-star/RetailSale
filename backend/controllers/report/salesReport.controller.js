@@ -173,6 +173,25 @@ exports.getSalesReport = async (req, res) => {
             order: [['sale_date', 'DESC'], ['id', 'DESC']]
         });
 
+        let totalSubscriptionAmount = 0;
+        if (from_date && to_date) {
+            const subConsumption = await req.propertyDb.query(`
+                SELECT COALESCE(SUM(covered_amount), 0) as total_subscription_amount
+                FROM milk_subscription_consumptions
+                WHERE outlet_id = :outletId
+                  AND txn_date BETWEEN :fromDate AND :toDate
+                  AND status != 'CANCELLED'
+            `, {
+                replacements: {
+                    outletId: outlet_id,
+                    fromDate: `${from_date}T00:00:00`,
+                    toDate: `${to_date}T23:59:59`
+                },
+                type: req.propertyDb.QueryTypes.SELECT
+            });
+            totalSubscriptionAmount = toNumber(subConsumption?.[0]?.total_subscription_amount);
+        }
+
         const paymentModeSummary = {};
         const timeZoneMap = Object.fromEntries(
             SALES_ZONES.map((zone) => [zone.key, {
@@ -390,6 +409,7 @@ exports.getSalesReport = async (req, res) => {
             other_taxes_collected: roundAmount(otherTaxes),
             total_taxes_collected: roundAmount(gst + vat + otherTaxes),
             total_revenue: roundAmount(totalRevenue),
+            subscription_realized: roundAmount(totalSubscriptionAmount),
             estimated_cost: roundAmount(estimatedCost),
             estimated_profit: roundAmount(profit),
             estimated_loss: roundAmount(loss)

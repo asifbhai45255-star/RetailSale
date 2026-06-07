@@ -100,6 +100,16 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
   double cashOutTotal = 0;
   double cashNetTotal = 0;
   double netOperatingProfit = 0;
+  double netSubscription = 0;
+  double netDebit = 0;
+  double todaySubscriptionQty = 0;
+  double todaySubscriptionAmount = 0;
+  double todayDiscount = 0;
+  double todayRevenue = 0;
+  double todayCollection = 0;
+  double todayCogs = 0;
+  double todayGrossProfit = 0;
+  double todayGrossLoss = 0;
   final UserController userCtrl = UserController();
   // DATA
   List<String> lowStockItems = [];
@@ -484,6 +494,16 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
         cashOutTotal = safeDouble(data['kpis']['cashOutTotal']);
         cashNetTotal = safeDouble(data['kpis']['cashNetTotal']);
         netOperatingProfit = safeDouble(data['kpis']['netOperatingProfit']);
+        netSubscription = safeDouble(data['kpis']['netSubscription']);
+        netDebit = safeDouble(data['kpis']['netDebit']);
+        todaySubscriptionQty = safeDouble(data['kpis']['todaySubscriptionQty']);
+        todaySubscriptionAmount = safeDouble(data['kpis']['todaySubscriptionAmount']);
+        todayDiscount = safeDouble(data['kpis']['todayDiscount']);
+        todayRevenue = safeDouble(data['kpis']['todayRevenue']);
+        todayCollection = safeDouble(data['kpis']['todayCollection']);
+        todayCogs = safeDouble(data['kpis']['todayCogs']);
+        todayGrossProfit = safeDouble(data['kpis']['todayGrossProfit']);
+        todayGrossLoss = safeDouble(data['kpis']['todayGrossLoss']);
 
         // Low stock list
         lowStockItems = List<String>.from(data['lowStockItems']);
@@ -819,29 +839,44 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
           children: [
             Expanded(
               child: _statCard(
-                'Revenue',
-                'Rs. ${totalRevenue.toStringAsFixed(0)}',
+                'Today Revenue',
+                'Rs. ${todayRevenue.toStringAsFixed(0)}',
                 Icons.payments_outlined,
                 const Color(0xFF2563EB),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SalesReportScreen(),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _statCard(
-                'COGS',
-                'Rs. ${totalProfit.toStringAsFixed(0)}',
-                Icons.trending_up,
-                const Color(0xFF16A34A),
+                'Today COGS',
+                'Rs. ${todayCogs.toStringAsFixed(0)}',
+                Icons.shopping_bag_outlined,
+                const Color(0xFFF97316),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _statCard(
-                'Gross Loss',
-                'Rs. ${totalLoss.toStringAsFixed(0)}',
-                Icons.trending_down,
-                const Color(0xFFDC2626),
-              ),
+              child: todayGrossProfit >= todayGrossLoss
+                  ? _statCard(
+                      'Gross Profit',
+                      'Rs. ${todayGrossProfit.toStringAsFixed(0)}',
+                      Icons.trending_up,
+                      const Color(0xFF16A34A),
+                    )
+                  : _statCard(
+                      'Gross Loss',
+                      'Rs. ${todayGrossLoss.toStringAsFixed(0)}',
+                      Icons.trending_down,
+                      const Color(0xFFDC2626),
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -850,6 +885,45 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
                 '${month?.growthPercent.toStringAsFixed(1) ?? '0.0'}%',
                 Icons.auto_graph,
                 const Color(0xFF7C3AED),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _statCard(
+                'Today Subscription Sale',
+                'Rs. ${todaySubscriptionAmount.toStringAsFixed(0)}',
+                Icons.subscriptions_outlined,
+                const Color(0xFF0EA5E9),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _statCard(
+                'Today Discount',
+                'Rs. ${todayDiscount.toStringAsFixed(0)}',
+                Icons.percent_outlined,
+                const Color(0xFFF59E0B),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _statCard(
+                'Today Collection',
+                'Rs. ${todayCollection.toStringAsFixed(0)}',
+                Icons.savings_outlined,
+                const Color(0xFF6366F1),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CashLedgerScreen(),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -888,7 +962,9 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
       _PeriodPoint('Withdrawals', withdrawalTotal),
       _PeriodPoint('Customer Due', customerOutstanding),
       _PeriodPoint('Supplier Due', supplierOutstanding),
-      _PeriodPoint('Net Cash', cashNetTotal),
+      _PeriodPoint('Net Collection', cashInTotal),
+      _PeriodPoint('Net Subscription', netSubscription),
+      _PeriodPoint('Net Debit', netDebit),
       _PeriodPoint('Net Operating Profit', netOperatingProfit),
     ];
 
@@ -908,10 +984,12 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
           return const Color(0xFF0EA5E9);
         case 'Supplier Due':
           return const Color(0xFF64748B);
-        case 'Net Cash':
-          return cashNetTotal >= 0
-              ? const Color(0xFF16A34A)
-              : const Color(0xFFDC2626);
+        case 'Net Collection':
+          return const Color(0xFF16A34A);
+        case 'Net Subscription':
+          return const Color(0xFF0EA5E9);
+        case 'Net Debit':
+          return const Color(0xFFDC2626);
         case 'Net Operating Profit':
           return netOperatingProfit >= 0
               ? const Color(0xFF16A34A)
@@ -1049,39 +1127,48 @@ class _UserInventoryDashboardState extends State<UserInventoryDashboard> {
     );
   }
 
-  Widget _statCard(String label, String value, IconData icon, Color color) {
+  Widget _statCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withOpacity(0.14)),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    Text(value,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: color,
+                        )),
+                  ],
+                ),
+              ],
             ),
-            child: Icon(icon, color: color),
           ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: Color(0xFF64748B))),
-              const SizedBox(height: 4),
-              Text(value,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                  )),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

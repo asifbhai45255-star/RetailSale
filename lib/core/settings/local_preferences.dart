@@ -11,6 +11,7 @@ class LocalPreferences {
   static const _touchModeKey = 'touch_mode_enabled';
   static const _defaultStartupScreenKey = 'default_startup_screen';
   static const _textfieldSizeKey = 'ui_textfield_size';
+  static const _textfieldBorderStyleKey = 'ui_textfield_border_style';
   static const _cardColorStyleKey = 'ui_card_color_style';
 
   static Future<bool> getShowNotifications() async {
@@ -51,6 +52,16 @@ class LocalPreferences {
   static Future<void> setTextfieldSize(String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_textfieldSizeKey, value);
+  }
+
+  static Future<String> getTextfieldBorderStyle() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_textfieldBorderStyleKey) ?? 'rounded';
+  }
+
+  static Future<void> setTextfieldBorderStyle(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_textfieldBorderStyleKey, value);
   }
 
   static Future<String> getCardColorStyle() async {

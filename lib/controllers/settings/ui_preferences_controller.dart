@@ -6,17 +6,20 @@ class UiPreferencesController extends ChangeNotifier {
   bool _touchMode = false;
   String _defaultStartupScreen = 'INVENTORY_DASHBOARD';
   String _textfieldSize = 'normal';
+  String _textfieldBorderStyle = 'rounded';
   String _cardColorStyle = 'soft';
 
   bool get touchMode => _touchMode;
   String get defaultStartupScreen => _defaultStartupScreen;
   String get textfieldSize => _textfieldSize;
+  String get textfieldBorderStyle => _textfieldBorderStyle;
   String get cardColorStyle => _cardColorStyle;
 
   Future<void> load() async {
     _touchMode = await LocalPreferences.getTouchMode();
     _defaultStartupScreen = await LocalPreferences.getDefaultStartupScreen();
     _textfieldSize = await LocalPreferences.getTextfieldSize();
+    _textfieldBorderStyle = await LocalPreferences.getTextfieldBorderStyle();
     _cardColorStyle = await LocalPreferences.getCardColorStyle();
     notifyListeners();
   }
@@ -39,6 +42,13 @@ class UiPreferencesController extends ChangeNotifier {
     if (_textfieldSize == value) return;
     _textfieldSize = value;
     await LocalPreferences.setTextfieldSize(value);
+    notifyListeners();
+  }
+
+  Future<void> updateTextfieldBorderStyle(String value) async {
+    if (_textfieldBorderStyle == value) return;
+    _textfieldBorderStyle = value;
+    await LocalPreferences.setTextfieldBorderStyle(value);
     notifyListeners();
   }
 

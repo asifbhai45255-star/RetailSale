@@ -2805,7 +2805,7 @@ exports.createSale = async (req, res) => {
                         reference_id: subscriptionAllocation.subscriptionId,
                         reference_no: referenceSale.sale_no,
                         party_name: header.customer_name || header.customer_phone || 'Subscription Customer',
-                        payment_method: subscriptionCashAdvance?.payment_mode || header.payment_mode || 'CASH',
+                        payment_method: 'SUBSCRIPTION',
                         amount_out: appliedCashAdvanceAmount,
                         notes: `Advance adjusted for subscription item consumption in ${referenceSale.sale_no}`,
                         created_by: req.user.id,

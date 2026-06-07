@@ -1300,7 +1300,7 @@ exports.getCreditReport = async (req, res) => {
                 repayment_total: repaymentTotal,
                 total_paid: totalPaid,
                 outstanding: balanceDue,
-                payment_status: resolvePaymentStatus(totalPaid, sale.net_amount),
+                payment_status: resolvePaymentStatus(totalPaid, sale.net_amount, sale.payment_mode),
                 payments: (sale.repayments || []).map((payment) => ({
                     id: payment.id,
                     payment_date: payment.payment_date,
@@ -1394,7 +1394,7 @@ exports.getDeliveryReport = async (req, res) => {
                 paid_amount: toAmount(sale.amount_paid),
                 outstanding: toAmount(sale.balance_due),
                 payment_mode: String(sale.payment_mode || '').trim().toUpperCase(),
-                payment_status: resolvePaymentStatus(sale.amount_paid, sale.net_amount)
+                payment_status: resolvePaymentStatus(sale.amount_paid, sale.net_amount, sale.payment_mode)
             }))
             .filter((row) => !req.query.status || row.payment_status === String(req.query.status).toUpperCase());
 

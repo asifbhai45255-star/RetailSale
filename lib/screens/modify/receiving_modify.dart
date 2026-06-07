@@ -385,6 +385,8 @@ class _ModifyReceivingScreenState extends State<ModifyReceivingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       appBar: AppBar(
@@ -395,86 +397,140 @@ class _ModifyReceivingScreenState extends State<ModifyReceivingScreen> {
         child: Column(
           children: [
             /// FILTER CARD
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: scheme.outlineVariant),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 16,
+                  crossAxisAlignment: WrapCrossAlignment.end,
                   children: [
                     /// DATE
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.calendar_today),
-                      label: Text(
-                        DateFormat('dd-MMM-yyyy').format(selectedDate),
-                      ),
-                      onPressed: () async {
-                        final d = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now(),
-                        );
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Date",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 160,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.calendar_today, size: 14),
+                            label: Text(
+                              DateFormat('dd-MMM-yyyy').format(selectedDate),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            onPressed: () async {
+                              final d = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
 
-                        if (d != null) {
-                          selectedDate = d;
-                          await _loadGRN();
-                        }
-                      },
+                              if (d != null) {
+                                selectedDate = d;
+                                await _loadGRN();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-
-                    const SizedBox(width: 20),
 
                     /// GRN
-                    Expanded(
-                      child: DropdownButtonFormField<int>(
-                        key: ValueKey('grn-$grnId'),
-                        value: grnId,
-                        decoration: const InputDecoration(
-                          labelText: "GRN No",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "GRN No",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
                           ),
                         ),
-                        items: ctrl.grns.map<DropdownMenuItem<int>>((e) {
-                          return DropdownMenuItem(
-                            value: e['id'],
-                            child: Text(e['grn_no']),
-                          );
-                        }).toList(),
-                        onChanged: (v) {
-                          if (v == null) return;
-                          _loadDetails(v);
-                        },
-                      ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 220,
+                          child: DropdownButtonFormField<int>(
+                            key: ValueKey('grn-$grnId'),
+                            initialValue: grnId,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                            items: ctrl.grns.map<DropdownMenuItem<int>>((e) {
+                              return DropdownMenuItem(
+                                value: e['id'],
+                                child: Text(e['grn_no'], style: const TextStyle(fontSize: 13)),
+                              );
+                            }).toList(),
+                            onChanged: (v) {
+                              if (v == null) return;
+                              _loadDetails(v);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(width: 20),
-
                     /// SUPPLIER
-                    Expanded(
-                      child: DropdownButtonFormField<int>(
-                        key: ValueKey('supplier-$grnId-$supplierId'),
-                        value: supplierId,
-                        decoration: const InputDecoration(
-                          labelText: "Supplier",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Supplier",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
                           ),
                         ),
-                        items: supplierCtrl.list
-                            .map((Supplier s) => DropdownMenuItem(
-                                  value: s.id,
-                                  child: Text(s.supplierName),
-                                ))
-                            .toList(),
-                        onChanged: (v) {
-                          setState(() {
-                            supplierId = v;
-                          });
-                        },
-                      ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 38,
+                          width: 260,
+                          child: DropdownButtonFormField<int>(
+                            key: ValueKey('supplier-$grnId-$supplierId'),
+                            initialValue: supplierId,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            ),
+                            items: supplierCtrl.list
+                                .map((Supplier s) => DropdownMenuItem(
+                                      value: s.id,
+                                      child: Text(s.supplierName, style: const TextStyle(fontSize: 13)),
+                                    ))
+                                .toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                supplierId = v;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -485,80 +541,109 @@ class _ModifyReceivingScreenState extends State<ModifyReceivingScreen> {
 
             /// ITEMS TABLE
             Expanded(
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: scheme.outlineVariant),
                 ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    headingRowColor:
-                        WidgetStateProperty.all(Colors.grey.shade100),
-                    columnSpacing: 40,
-                    columns: const [
-                      DataColumn(label: Text("S.No")),
-                      DataColumn(label: Text("Item")),
-                      DataColumn(label: Text("Unit")),
-                      DataColumn(label: Text("Qty")),
-                      DataColumn(label: Text("Rate")),
-                      DataColumn(label: Text("Amount")),
-                    ],
-                    rows: List.generate(items.length, (i) {
-                      final item = items[i];
-
-                      final amount = double.parse(item['qty'].toString()) *
-                          double.parse(item['rate'].toString());
-
-                      return DataRow(
-                        color: WidgetStateProperty.resolveWith((states) {
-                          return i.isEven
-                              ? const Color(0xffFAFBFD)
-                              : Colors.white;
-                        }),
-                        cells: [
-                          DataCell(Text("${i + 1}")),
-                          DataCell(Text(item['item_name'])),
-                          DataCell(Text(item['unit'] ?? "")),
-                          DataCell(
-                            SizedBox(
-                              width: 80,
-                              child: TextFormField(
-                                key: ValueKey(
-                                  'receiving-$grnId-${item['id'] ?? item['item_code'] ?? item['item_name']}-qty',
-                                ),
-                                initialValue: item['qty'].toString(),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                ),
-                                onChanged: (v) {
-                                  item['qty'] = double.tryParse(v) ?? 0;
-                                  setState(() {});
-                                },
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            SizedBox(
-                              width: 80,
-                              child: TextFormField(
-                                key: ValueKey(
-                                  'receiving-$grnId-${item['id'] ?? item['item_code'] ?? item['item_name']}-rate',
-                                ),
-                                initialValue: item['rate'].toString(),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                ),
-                                onChanged: (v) {
-                                  item['rate'] = double.tryParse(v) ?? 0;
-                                  setState(() {});
-                                },
-                              ),
-                            ),
-                          ),
-                          DataCell(Text(amount.toStringAsFixed(2))),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: WidgetStateProperty.all(scheme.surfaceContainerHighest),
+                        columnSpacing: 40,
+                        columns: const [
+                          DataColumn(label: Text("S.No")),
+                          DataColumn(label: Text("Item")),
+                          DataColumn(label: Text("Unit")),
+                          DataColumn(label: Text("Qty")),
+                          DataColumn(label: Text("Rate")),
+                          DataColumn(label: Text("Remarks")),
+                          DataColumn(label: Text("Amount")),
                         ],
-                      );
-                    }),
+                        rows: List.generate(items.length, (i) {
+                          final item = items[i];
+
+                          final amount = double.parse(item['qty'].toString()) *
+                              double.parse(item['rate'].toString());
+
+                          return DataRow(
+                            color: WidgetStateProperty.resolveWith((states) {
+                              return i.isEven
+                                  ? const Color(0xffFAFBFD)
+                                  : Colors.white;
+                            }),
+                            cells: [
+                              DataCell(Text("${i + 1}")),
+                              DataCell(Text(item['item_name'])),
+                              DataCell(Text(item['unit'] ?? "")),
+                              DataCell(
+                                SizedBox(
+                                  width: 80,
+                                  child: TextFormField(
+                                    key: ValueKey(
+                                      'receiving-$grnId-${item['id'] ?? item['item_code'] ?? item['item_name']}-qty',
+                                    ),
+                                    initialValue: item['qty'].toString(),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    onChanged: (v) {
+                                      item['qty'] = double.tryParse(v) ?? 0;
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                SizedBox(
+                                  width: 80,
+                                  child: TextFormField(
+                                    key: ValueKey(
+                                      'receiving-$grnId-${item['id'] ?? item['item_code'] ?? item['item_name']}-rate',
+                                    ),
+                                    initialValue: item['rate'].toString(),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    onChanged: (v) {
+                                      item['rate'] = double.tryParse(v) ?? 0;
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                SizedBox(
+                                  width: 150,
+                                  child: TextFormField(
+                                    key: ValueKey(
+                                      'receiving-$grnId-${item['id'] ?? item['item_code'] ?? item['item_name']}-remarks',
+                                    ),
+                                    initialValue: (item['remarks'] ?? '').toString(),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    onChanged: (v) {
+                                      item['remarks'] = v;
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ),
+                              DataCell(Text(amount.toStringAsFixed(2))),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -567,27 +652,36 @@ class _ModifyReceivingScreenState extends State<ModifyReceivingScreen> {
             const SizedBox(height: 16),
 
             /// TOTAL
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    "Total Amount",
-                    style: TextStyle(fontWeight: FontWeight.w600),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 300,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: scheme.outlineVariant),
                   ),
-                  const Spacer(),
-                  Text(
-                    "₹ ${total.toStringAsFixed(2)}",
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  )
-                ],
-              ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        "Total Amount",
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "₹ ${total.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.primary,
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SafeArea(
@@ -601,11 +695,11 @@ class _ModifyReceivingScreenState extends State<ModifyReceivingScreen> {
                     Tooltip(
                       message: 'Close modify screen',
                       child: SizedBox(
-                        width: 170,
-                        height: 56,
+                        width: 140,
+                        height: 44,
                         child: OutlinedButton.icon(
                           onPressed: _closeScreen,
-                          icon: const Icon(Icons.close_outlined),
+                          icon: const Icon(Icons.close_outlined, size: 18),
                           label: const Text('Cancel'),
                         ),
                       ),
@@ -614,11 +708,11 @@ class _ModifyReceivingScreenState extends State<ModifyReceivingScreen> {
                     Tooltip(
                       message: 'Print receiving voucher',
                       child: SizedBox(
-                        width: 180,
-                        height: 56,
+                        width: 140,
+                        height: 44,
                         child: FilledButton.icon(
                           onPressed: _print,
-                          icon: const Icon(Icons.print_outlined),
+                          icon: const Icon(Icons.print_outlined, size: 18),
                           label: const Text('Print'),
                         ),
                       ),
@@ -627,11 +721,11 @@ class _ModifyReceivingScreenState extends State<ModifyReceivingScreen> {
                     Tooltip(
                       message: 'Save receiving changes',
                       child: SizedBox(
-                        width: 180,
-                        height: 56,
+                        width: 140,
+                        height: 44,
                         child: FilledButton.icon(
                           onPressed: _save,
-                          icon: const Icon(Icons.save_outlined),
+                          icon: const Icon(Icons.save_outlined, size: 18),
                           label: const Text('Save'),
                         ),
                       ),
